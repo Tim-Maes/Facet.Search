@@ -5,7 +5,7 @@
 
 **Source generators for Facet.Search** - Automatically generates faceted search infrastructure from your domain models at compile time.
 
-> ?? **Note**: This package is included automatically when you install [`Facet.Search`](https://www.nuget.org/packages/Facet.Search/). You only need to install this package directly if you want to use the generators without the main package.
+> > **Note**: This package is included automatically when you install [`Facet.Search`](https://www.nuget.org/packages/Facet.Search/). You only need to install this package directly if you want to use the generators without the main package.
 
 ## What Gets Generated
 

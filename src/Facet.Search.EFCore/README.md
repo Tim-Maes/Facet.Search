@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Facet.Search.EFCore.svg)](https://www.nuget.org/packages/Facet.Search.EFCore/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Entity Framework Core integration for Facet.Search** - Async extensions for executing faceted searches and aggregations with EF Core.
+**Entity Framework Core integration for Facet.Search**, Async extensions for executing faceted searches and aggregations with EF Core.
 
 ## Installation
 
@@ -140,7 +140,6 @@ public class PagedResult<T>
 ## Related Packages
 
 - [Facet.Search](https://www.nuget.org/packages/Facet.Search/) - Core package with attributes and source generators
-- [Facet.Search.Generators](https://www.nuget.org/packages/Facet.Search.Generators/) - Standalone source generator
 
 ## License
 
