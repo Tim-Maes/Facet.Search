@@ -188,10 +188,10 @@ public int Rating { get; set; }
 Generated files appear in your project's `obj` folder:
 ```
 obj/Debug/net8.0/generated/Facet.Search.Generators/
-??? ProductSearchFilter.g.cs
-??? ProductSearchExtensions.g.cs
-??? ProductFacetAggregations.g.cs
-??? ProductSearchMetadata.g.cs
+> ProductSearchFilter.g.cs
+> ProductSearchExtensions.g.cs
+> ProductFacetAggregations.g.cs
+> ProductSearchMetadata.g.cs
 ```
 
 ## Requirements
