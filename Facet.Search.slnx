@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Facet.Search.EFCore.Tests/Facet.Search.EFCore.Tests.csproj" />
     <Project Path="tests/Facet.Search.TestConsumer/Facet.Search.TestConsumer.csproj" />

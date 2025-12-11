@@ -3,20 +3,20 @@
 [![NuGet](https://img.shields.io/nuget/v/Facet.Search.svg)](https://www.nuget.org/packages/Facet.Search/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Compile-time faceted search generation for .NET** - Zero boilerplate, type-safe, and performant.
+**Compile-time faceted search generation for .NET**, Zero boilerplate, type-safe, and performant.
 
-Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models - all at compile time with no runtime overhead.
+Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models, all at compile time with no runtime overhead.
 
 ## Features
 
-? **Zero Boilerplate** - Just add attributes to your models  
-? **Type-Safe** - All filters are compile-time checked  
-? **Performant** - Generated code is as efficient as hand-written  
-? **Clean Architecture** - No Roslyn dependencies in your runtime  
-? **EF Core Integration** - Async extensions for Entity Framework Core  
-? **Full-Text Search** - Built-in text search support  
-? **Facet Aggregations** - Automatic counting and range detection  
-? **Frontend Metadata** - Generate facet metadata for UI consumption  
+- **Zero Boilerplate** - Just add attributes to your models  
+- **Type-Safe** - All filters are compile-time checked  
+- **Performant** - Generated code is as efficient as hand-written  
+- **Clean Architecture** - No Roslyn dependencies in your runtime  
+- **EF Core Integration** - Async extensions for Entity Framework Core  
+- **Full-Text Search** - Built-in text search support  
+- **Facet Aggregations** - Automatic counting and range detection  
+- **Frontend Metadata** - Generate facet metadata for UI consumption  
 
 ## Installation
 
@@ -202,7 +202,7 @@ obj/Debug/net8.0/generated/Facet.Search.Generators/
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE.txt](LICENSE) for details.
 
 ## Contributing
 

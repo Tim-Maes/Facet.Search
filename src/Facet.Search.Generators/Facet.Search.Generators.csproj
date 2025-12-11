@@ -12,7 +12,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Facet.Search.Generators</PackageId>
-    <Version>1.0.0</Version>
+    <Version>0.0.1</Version>
     <Authors>Tim Maes</Authors>
     <Description>Source generators for Facet.Search - automatic faceted search filter generation (development dependency only)</Description>
     <DevelopmentDependency>true</DevelopmentDependency>

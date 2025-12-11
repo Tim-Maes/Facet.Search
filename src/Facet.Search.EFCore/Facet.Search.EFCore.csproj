@@ -12,8 +12,8 @@
     <Description>Entity Framework Core integration for Facet.Search</Description>
     <PackageTags>facet;search;efcore;entity-framework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Tim-Maes/Facet</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Tim-Maes/Facet</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
