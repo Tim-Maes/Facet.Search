@@ -12,14 +12,9 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Facet.Search.Generators</PackageId>
-    <Version>0.0.1</Version>
-    <Authors>Tim Maes</Authors>
     <Description>Source generators for Facet.Search - automatic faceted search filter generation (development dependency only)</Description>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageTags>facet;search;source-generator;analyzer;roslyn</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

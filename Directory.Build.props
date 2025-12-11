@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.0.2</Version>
+    <Authors>Tim Maes</Authors>
+    <Company>Tim Maes</Company>
+    <Copyright>Copyright © Tim Maes 2025</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

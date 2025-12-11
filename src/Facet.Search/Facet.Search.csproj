@@ -7,13 +7,8 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Facet.Search</PackageId>
-    <Version>0.0.1</Version>
-    <Authors>Tim Maes</Authors>
     <Description>Compile-time faceted search generation - attributes and source generators</Description>
     <PackageTags>facet;search;filtering;source-generator;dto;linq</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
