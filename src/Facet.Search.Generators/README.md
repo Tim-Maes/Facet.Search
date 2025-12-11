@@ -39,7 +39,7 @@ obj/Debug/net8.0/generated/Facet.Search.Generators/
 ## Requirements
 
 - .NET Standard 2.0+
-- C# 9.0+
+- C# 10.0+
 
 ## Installation
 

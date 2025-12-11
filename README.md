@@ -201,9 +201,8 @@ obj/Debug/net8.0/generated/Facet.Search.Generators/
 
 ## Requirements
 
-- .NET Standard 2.0+ (for Facet.Search)
-- .NET 6.0+ (for Facet.Search.EFCore)
-- C# 9.0+
+- .NET Standard 2.0+
+- .NET 10+
 
 ## License
 

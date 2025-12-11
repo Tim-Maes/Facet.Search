@@ -6,7 +6,6 @@ namespace Facet.Search.Generators;
 
 /// <summary>
 /// Incremental source generator for Facet.Search.
-/// Uses ForAttributeWithMetadataName for optimal performance.
 /// </summary>
 [Generator]
 public class FacetSearchGenerator : IIncrementalGenerator
@@ -36,26 +35,19 @@ public class FacetSearchGenerator : IIncrementalGenerator
 
     private static void Execute(SearchableModel model, SourceProductionContext context)
     {
-            // Generate filter class
-            var filterCode = FilterClassGenerator.Generate(model);
-            context.AddSource($"{model.FilterClassName}.g.cs", filterCode);
+        try
+        {
+            context.AddSource($"{model.FilterClassName}.g.cs", FilterClassGenerator.Generate(model));
+            context.AddSource($"{model.ClassName}SearchExtensions.g.cs", ExtensionMethodsGenerator.Generate(model));
 
-            // Generate extension methods for applying search
-            var extensionCode = ExtensionMethodsGenerator.Generate(model);
-            context.AddSource($"{model.ClassName}SearchExtensions.g.cs", extensionCode);
-
-            // Generate aggregation methods if enabled
             if (model.GenerateAggregations)
-            {
-                var aggregationCode = AggregationGenerator.Generate(model);
-                context.AddSource($"{model.ClassName}FacetAggregations.g.cs", aggregationCode);
-            }
+                context.AddSource($"{model.ClassName}FacetAggregations.g.cs", AggregationGenerator.Generate(model));
 
-            // Generate metadata if enabled
             if (model.GenerateMetadata)
-            {
-                var metadataCode = MetadataGenerator.Generate(model);
-                context.AddSource($"{model.ClassName}SearchMetadata.g.cs", metadataCode);
-            }
+                context.AddSource($"{model.ClassName}SearchMetadata.g.cs", MetadataGenerator.Generate(model));
+        }
+        catch
+        {
+        }
     }
 }

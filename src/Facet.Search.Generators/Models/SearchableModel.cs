@@ -1,87 +1,120 @@
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+using System;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Facet.Search.Generators.Models;
 
-/// <summary>
-/// Represents a class marked with [FacetedSearch] and its searchable properties.
-/// </summary>
-internal class SearchableModel
+internal sealed record SearchableModel(
+    string ClassName,
+    string Namespace,
+    string FilterClassName,
+    bool GenerateAggregations,
+    bool GenerateMetadata,
+    EquatableArray<SearchFacetInfo> Facets,
+    EquatableArray<PropertyInfo> FullTextProperties,
+    EquatableArray<PropertyInfo> SearchableProperties
+) : IEquatable<SearchableModel>
 {
-    public string ClassName { get; set; } = null!;
-    public string Namespace { get; set; } = null!;
-    public string FilterClassName { get; set; } = null!;
-    public bool GenerateAggregations { get; set; }
-    public bool GenerateMetadata { get; set; }
-    public List<SearchFacetInfo> Facets { get; set; } = new();
-    public List<PropertyInfo> FullTextProperties { get; set; } = new();
-    public List<PropertyInfo> SearchableProperties { get; set; } = new();
-
-    /// <summary>
-    /// Creates a SearchableModel from the class symbol and its [FacetedSearch] attribute.
-    /// Optimized for use with ForAttributeWithMetadataName.
-    /// </summary>
     public static SearchableModel Create(INamedTypeSymbol classSymbol, AttributeData facetedSearchAttr)
     {
-        var model = new SearchableModel
-        {
-            ClassName = classSymbol.Name,
-            Namespace = classSymbol.ContainingNamespace.ToDisplayString()
-        };
+        var className = classSymbol.Name;
+        var ns = classSymbol.ContainingNamespace.ToDisplayString();
 
-        // Extract attribute properties from the provided attribute
-        model.FilterClassName = GetNamedArgument<string>(facetedSearchAttr, "FilterClassName")
-            ?? $"{model.ClassName}SearchFilter";
-        model.GenerateAggregations = GetNamedArgument<bool>(facetedSearchAttr, "GenerateAggregations", true);
-        model.GenerateMetadata = GetNamedArgument<bool>(facetedSearchAttr, "GenerateMetadata", true);
+        var filterClassName = GetNamedArgument<string>(facetedSearchAttr, "FilterClassName")
+            ?? $"{className}SearchFilter";
+        var generateAggregations = GetNamedArgument<bool>(facetedSearchAttr, "GenerateAggregations", true);
+        var generateMetadata = GetNamedArgument<bool>(facetedSearchAttr, "GenerateMetadata", true);
 
         var customNamespace = GetNamedArgument<string>(facetedSearchAttr, "Namespace");
         if (!string.IsNullOrEmpty(customNamespace))
-            model.Namespace = customNamespace!;
+            ns = customNamespace!;
 
-        // Collect all searchable properties
+        var facetsBuilder = ImmutableArray.CreateBuilder<SearchFacetInfo>();
+        var fullTextBuilder = ImmutableArray.CreateBuilder<PropertyInfo>();
+        var searchableBuilder = ImmutableArray.CreateBuilder<PropertyInfo>();
+
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
             var searchFacetAttr = member.GetAttributes()
                 .FirstOrDefault(a => a.AttributeClass?.Name == "SearchFacetAttribute");
-
             var fullTextAttr = member.GetAttributes()
                 .FirstOrDefault(a => a.AttributeClass?.Name == "FullTextSearchAttribute");
-
             var searchableAttr = member.GetAttributes()
                 .FirstOrDefault(a => a.AttributeClass?.Name == "SearchableAttribute");
 
             if (searchFacetAttr != null)
-            {
-                model.Facets.Add(SearchFacetInfo.Create(member, searchFacetAttr));
-            }
+                facetsBuilder.Add(SearchFacetInfo.Create(member, searchFacetAttr));
             else if (fullTextAttr != null)
-            {
-                model.FullTextProperties.Add(new PropertyInfo
-                {
-                    Name = member.Name,
-                    Type = member.Type.ToDisplayString(),
-                    Attribute = fullTextAttr
-                });
-            }
+                fullTextBuilder.Add(CreateFullTextPropertyInfo(member, fullTextAttr));
             else if (searchableAttr != null)
+                searchableBuilder.Add(CreateSearchablePropertyInfo(member, searchableAttr));
+        }
+
+        return new SearchableModel(
+            className, ns, filterClassName, generateAggregations, generateMetadata,
+            facetsBuilder.ToImmutable().ToEquatableArray(),
+            fullTextBuilder.ToImmutable().ToEquatableArray(),
+            searchableBuilder.ToImmutable().ToEquatableArray());
+    }
+
+    private static PropertyInfo CreateFullTextPropertyInfo(IPropertySymbol property, AttributeData attribute)
+    {
+        var weight = 1.0f;
+        var caseSensitive = false;
+        var behavior = "Contains";
+
+        foreach (var namedArg in attribute.NamedArguments)
+        {
+            switch (namedArg.Key)
             {
-                model.SearchableProperties.Add(new PropertyInfo
-                {
-                    Name = member.Name,
-                    Type = member.Type.ToDisplayString(),
-                    Attribute = searchableAttr
-                });
+                case "Weight":
+                    weight = (float)(namedArg.Value.Value ?? 1.0f);
+                    break;
+                case "CaseSensitive":
+                    caseSensitive = (bool)(namedArg.Value.Value ?? false);
+                    break;
+                case "Behavior":
+                    behavior = GetEnumName(namedArg.Value) ?? "Contains";
+                    break;
             }
         }
 
-        return model;
+        return new PropertyInfo(property.Name, property.Type.ToDisplayString(), weight, caseSensitive, behavior, false);
+    }
+
+    private static PropertyInfo CreateSearchablePropertyInfo(IPropertySymbol property, AttributeData attribute)
+    {
+        var sortable = true;
+        foreach (var namedArg in attribute.NamedArguments)
+        {
+            if (namedArg.Key == "Sortable")
+                sortable = (bool)(namedArg.Value.Value ?? true);
+        }
+
+        return new PropertyInfo(property.Name, property.Type.ToDisplayString(), 1.0f, false, "Contains", sortable);
     }
 
     private static T? GetNamedArgument<T>(AttributeData attribute, string name, T? defaultValue = default)
     {
         var arg = attribute.NamedArguments.FirstOrDefault(na => na.Key == name);
         return arg.Value.Value is T value ? value : defaultValue;
+    }
+
+    private static string? GetEnumName(TypedConstant constant)
+    {
+        if (constant.Type is INamedTypeSymbol enumType && enumType.TypeKind == TypeKind.Enum)
+        {
+            var value = constant.Value;
+            if (value != null)
+            {
+                foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>())
+                {
+                    if (member.HasConstantValue && member.ConstantValue?.Equals(value) == true)
+                        return member.Name;
+                }
+            }
+        }
+        return constant.Value?.ToString();
     }
 }
