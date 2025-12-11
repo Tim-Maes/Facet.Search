@@ -18,7 +18,11 @@ internal class SearchableModel
     public List<PropertyInfo> FullTextProperties { get; set; } = new();
     public List<PropertyInfo> SearchableProperties { get; set; } = new();
 
-    public static SearchableModel Create(INamedTypeSymbol classSymbol, SourceProductionContext context)
+    /// <summary>
+    /// Creates a SearchableModel from the class symbol and its [FacetedSearch] attribute.
+    /// Optimized for use with ForAttributeWithMetadataName.
+    /// </summary>
+    public static SearchableModel Create(INamedTypeSymbol classSymbol, AttributeData facetedSearchAttr)
     {
         var model = new SearchableModel
         {
@@ -26,28 +30,15 @@ internal class SearchableModel
             Namespace = classSymbol.ContainingNamespace.ToDisplayString()
         };
 
-        // Parse [FacetedSearch] attribute
-        var facetedSearchAttr = classSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.Name == "FacetedSearchAttribute");
+        // Extract attribute properties from the provided attribute
+        model.FilterClassName = GetNamedArgument<string>(facetedSearchAttr, "FilterClassName")
+            ?? $"{model.ClassName}SearchFilter";
+        model.GenerateAggregations = GetNamedArgument<bool>(facetedSearchAttr, "GenerateAggregations", true);
+        model.GenerateMetadata = GetNamedArgument<bool>(facetedSearchAttr, "GenerateMetadata", true);
 
-        if (facetedSearchAttr != null)
-        {
-            // Extract attribute properties
-            model.FilterClassName = GetNamedArgument<string>(facetedSearchAttr, "FilterClassName")
-                ?? $"{model.ClassName}SearchFilter";
-            model.GenerateAggregations = GetNamedArgument<bool>(facetedSearchAttr, "GenerateAggregations", true);
-            model.GenerateMetadata = GetNamedArgument<bool>(facetedSearchAttr, "GenerateMetadata", true);
-
-            var customNamespace = GetNamedArgument<string>(facetedSearchAttr, "Namespace");
-            if (!string.IsNullOrEmpty(customNamespace))
-                model.Namespace = customNamespace!;
-        }
-        else
-        {
-            model.FilterClassName = $"{model.ClassName}SearchFilter";
-            model.GenerateAggregations = true;
-            model.GenerateMetadata = true;
-        }
+        var customNamespace = GetNamedArgument<string>(facetedSearchAttr, "Namespace");
+        if (!string.IsNullOrEmpty(customNamespace))
+            model.Namespace = customNamespace!;
 
         // Collect all searchable properties
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())

@@ -1,106 +1,61 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
-using System.Linq;
 using Facet.Search.Generators.Models;
 
 namespace Facet.Search.Generators;
 
+/// <summary>
+/// Incremental source generator for Facet.Search.
+/// Uses ForAttributeWithMetadataName for optimal performance.
+/// </summary>
 [Generator]
 public class FacetSearchGenerator : IIncrementalGenerator
 {
+    private const string FacetedSearchAttributeFullName = "Facet.Search.FacetedSearchAttribute";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Find all classes with [FacetedSearch] attribute
-        var searchableClasses = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
-                transform: static (ctx, _) => GetSemanticTargetForGeneration(ctx))
+        var classDeclarations = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                FacetedSearchAttributeFullName,
+                predicate: static (node, _) => node is ClassDeclarationSyntax,
+                transform: static (ctx, _) => GetSearchableModel(ctx))
             .Where(static m => m is not null);
 
-        // Combine with compilation
-        var compilationAndClasses = context.CompilationProvider.Combine(searchableClasses.Collect());
-
-        // Generate code
-        context.RegisterSourceOutput(compilationAndClasses,
-            static (spc, source) => Execute(source.Left, source.Right!, spc));
+        context.RegisterSourceOutput(classDeclarations,
+            static (spc, model) => Execute(model!, spc));
     }
 
-    private static bool IsSyntaxTargetForGeneration(SyntaxNode node)
+    private static SearchableModel? GetSearchableModel(GeneratorAttributeSyntaxContext context)
     {
-        return node is ClassDeclarationSyntax classDeclaration
-            && classDeclaration.AttributeLists.Count > 0;
+        if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
+            return null;
+
+        return SearchableModel.Create(classSymbol, context.Attributes[0]);
     }
 
-    private static INamedTypeSymbol? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
+    private static void Execute(SearchableModel model, SourceProductionContext context)
     {
-        var classDeclaration = (ClassDeclarationSyntax)context.Node;
+            // Generate filter class
+            var filterCode = FilterClassGenerator.Generate(model);
+            context.AddSource($"{model.FilterClassName}.g.cs", filterCode);
 
-        foreach (var attributeList in classDeclaration.AttributeLists)
-        {
-            foreach (var attribute in attributeList.Attributes)
+            // Generate extension methods for applying search
+            var extensionCode = ExtensionMethodsGenerator.Generate(model);
+            context.AddSource($"{model.ClassName}SearchExtensions.g.cs", extensionCode);
+
+            // Generate aggregation methods if enabled
+            if (model.GenerateAggregations)
             {
-                var symbol = context.SemanticModel.GetSymbolInfo(attribute).Symbol;
-                if (symbol is not IMethodSymbol attributeSymbol)
-                    continue;
-
-                var attributeClass = attributeSymbol.ContainingType;
-                var fullName = attributeClass.ToDisplayString();
-
-                if (fullName == "Facet.Search.FacetedSearchAttribute")
-                {
-                    return context.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
-                }
+                var aggregationCode = AggregationGenerator.Generate(model);
+                context.AddSource($"{model.ClassName}FacetAggregations.g.cs", aggregationCode);
             }
-        }
 
-        return null;
-    }
-
-    private static void Execute(
-        Compilation compilation,
-        ImmutableArray<INamedTypeSymbol?> classes,
-        SourceProductionContext context)
-    {
-        if (classes.IsDefaultOrEmpty)
-            return;
-
-        foreach (var classSymbol in classes)
-        {
-            if (classSymbol is null)
-                continue;
-
-            try
+            // Generate metadata if enabled
+            if (model.GenerateMetadata)
             {
-                var searchableModel = SearchableModel.Create(classSymbol, context);
-
-                // Generate filter class
-                var filterCode = FilterClassGenerator.Generate(searchableModel);
-                context.AddSource($"{searchableModel.FilterClassName}.g.cs", filterCode);
-
-                // Generate extension methods for applying search
-                var extensionCode = ExtensionMethodsGenerator.Generate(searchableModel);
-                context.AddSource($"{searchableModel.ClassName}SearchExtensions.g.cs", extensionCode);
-
-                // Generate aggregation methods if enabled
-                if (searchableModel.GenerateAggregations)
-                {
-                    var aggregationCode = AggregationGenerator.Generate(searchableModel);
-                    context.AddSource($"{searchableModel.ClassName}FacetAggregations.g.cs", aggregationCode);
-                }
-
-                // Generate metadata if enabled
-                if (searchableModel.GenerateMetadata)
-                {
-                    var metadataCode = MetadataGenerator.Generate(searchableModel);
-                    context.AddSource($"{searchableModel.ClassName}SearchMetadata.g.cs", metadataCode);
-                }
+                var metadataCode = MetadataGenerator.Generate(model);
+                context.AddSource($"{model.ClassName}SearchMetadata.g.cs", metadataCode);
             }
-            catch
-            {
-                // Log errors appropriately
-                continue;
-            }
-        }
     }
 }
