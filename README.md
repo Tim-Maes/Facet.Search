@@ -1,7 +1,12 @@
 # Facet.Search
 
-[![NuGet](https://img.shields.io/nuget/v/Facet.Search.svg)](https://www.nuget.org/packages/Facet.Search/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/Tim-Maes/Facet.Search/actions/workflows/build.yml/badge.svg)](https://github.com/Tim-Maes/Facet.Search/actions/workflows/build.yml)
+[![Test](https://github.com/Tim-Maes/Facet.Search/actions/workflows/test.yml/badge.svg)](https://github.com/Tim-Maes/Facet.Search/actions/workflows/test.yml)
+[![CD](https://github.com/Tim-Maes/Facet.Search/actions/workflows/release.yml/badge.svg)](https://github.com/Tim-Maes/Facet.Search/actions/workflows/release.yml)
+[![NuGet](https://img.shields.io/nuget/v/Facet.Search.svg)](https://www.nuget.org/packages/Facet.Search)
+[![Downloads](https://img.shields.io/nuget/dt/Facet.Search.svg)](https://www.nuget.org/packages/Facet.Search)
+[![GitHub](https://img.shields.io/github/license/Tim-Maes/Facet.Search.svg)](https://github.com/Tim-Maes/Facet.Search/blob/main/LICENSE.txt)
+[![Discord](https://img.shields.io/discord/1443287393825329223?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/yGDBhGuNMB)
 
 **Compile-time faceted search generation for .NET**, Zero boilerplate, type-safe, and performant.
 
