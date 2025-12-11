@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Facet.Search.EFCore.Extensions;
+namespace Facet.Search.EFCore;
 
 /// <summary>
 /// Extensions for pagination and sorting of search results.

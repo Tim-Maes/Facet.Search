@@ -1,6 +1,4 @@
-using Facet.Search.EFCore.Extensions;
 using Facet.Search.EFCore.Tests.Fixtures;
-using Facet.Search.EFCore.Tests.Models;
 using Facet.Search.EFCore.Tests.Models.Search;
 
 namespace Facet.Search.EFCore.Tests;

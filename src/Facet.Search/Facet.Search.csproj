@@ -14,14 +14,16 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <!-- Include the generator DLL in the NuGet package as an analyzer -->
   <!-- Note: This is for packaging only, not for build-time reference -->
   <ItemGroup>
-    <None Include="..\Facet.Search.Generators\bin\$(Configuration)\netstandard2.0\Facet.Search.Generators.dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false" />
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\Facet.Search.Generators\bin\$(Configuration)\netstandard2.0\Facet.Search.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 </Project>

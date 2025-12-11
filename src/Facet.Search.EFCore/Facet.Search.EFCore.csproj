@@ -7,13 +7,14 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>Facet.Search.EFCore</PackageId>
-    <Version>1.0.0</Version>
+    <Version>0.0.1</Version>
     <Authors>Tim Maes</Authors>
     <Description>Entity Framework Core integration for Facet.Search</Description>
     <PackageTags>facet;search;efcore;entity-framework</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Tim-Maes/Facet.Search</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Tim-Maes/Facet.Search</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,5 +23,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Facet.Search\Facet.Search.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

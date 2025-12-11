@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Facet.Search.EFCore.Extensions;
+namespace Facet.Search.EFCore;
 
 /// <summary>
 /// EF Core extensions for executing facet aggregations efficiently.

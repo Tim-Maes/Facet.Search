@@ -97,6 +97,28 @@ foreach (var facet in ProductSearchMetadata.Facets)
 }
 ```
 
+## EF Core Integration
+
+Use the `Facet.Search.EFCore` package for async operations:
+
+```csharp
+using Facet.Search.EFCore;
+
+// Async search execution
+var results = await dbContext.Products
+    .ApplyFacetedSearch(filter)
+    .ExecuteSearchAsync();
+
+// Async count
+var count = await dbContext.Products
+    .ApplyFacetedSearch(filter)
+    .CountSearchResultsAsync();
+
+// Async facet aggregation
+var brandCounts = await dbContext.Products
+    .AggregateFacetAsync(p => p.Brand, limit: 10);
+```
+
 ## Facet Types
 
 | Type | Description | Generated Properties |
@@ -159,28 +181,6 @@ Marks a property as searchable but not a facet.
 ```csharp
 [Searchable(Sortable = true)]
 public int Rating { get; set; }
-```
-
-## EF Core Integration
-
-Use the `Facet.Search.EFCore` package for async operations:
-
-```csharp
-using Facet.Search.EFCore.Extensions;
-
-// Async search execution
-var results = await dbContext.Products
-    .ApplyFacetedSearch(filter)
-    .ExecuteSearchAsync();
-
-// Async count
-var count = await dbContext.Products
-    .ApplyFacetedSearch(filter)
-    .CountSearchResultsAsync();
-
-// Async facet aggregation
-var brandCounts = await dbContext.Products
-    .AggregateFacetAsync(p => p.Brand, limit: 10);
 ```
 
 ## Generated Code Location

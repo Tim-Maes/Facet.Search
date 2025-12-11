@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Facet.Search.EFCore.Extensions;
+namespace Facet.Search.EFCore;
 
 /// <summary>
 /// EF Core-specific extensions for faceted search.
