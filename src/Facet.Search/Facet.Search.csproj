@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Facet.Search</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Tim Maes</Authors>
+    <Description>Compile-time faceted search generation - attributes and source generators</Description>
+    <PackageTags>facet;search;filtering;source-generator;dto;linq</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Tim-Maes/Facet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Tim-Maes/Facet</RepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Include the generator DLL in the NuGet package as an analyzer -->
+  <!-- Note: This is for packaging only, not for build-time reference -->
+  <ItemGroup>
+    <None Include="..\Facet.Search.Generators\bin\$(Configuration)\netstandard2.0\Facet.Search.Generators.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
+  </ItemGroup>
+</Project>

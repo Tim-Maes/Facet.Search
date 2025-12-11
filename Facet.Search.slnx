@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Facet.Search.EFCore.Tests/Facet.Search.EFCore.Tests.csproj" />
+    <Project Path="tests/Facet.Search.TestConsumer/Facet.Search.TestConsumer.csproj" />
+    <Project Path="tests/Facet.Search.Tests/Facet.Search.Tests.csproj" />
+  </Folder>
+  <Project Path="src/Facet.Search.EFCore/Facet.Search.EFCore.csproj" />
+  <Project Path="src/Facet.Search.Generators/Facet.Search.Generators.csproj" />
+  <Project Path="src/Facet.Search/Facet.Search.csproj" />
+</Solution>

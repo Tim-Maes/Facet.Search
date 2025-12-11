@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+
+    <!-- Prevent this from being a regular dependency -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Facet.Search.Generators</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Tim Maes</Authors>
+    <Description>Source generators for Facet.Search - automatic faceted search filter generation (development dependency only)</Description>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <PackageTags>facet;search;source-generator;analyzer;roslyn</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- All Roslyn packages marked as PrivateAssets="all" -->
+    <!-- This prevents them from flowing to consumers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Note: We don't reference Facet.Search directly to avoid circular dependencies -->
+  <!-- The generator reads attribute names as strings from the compilation -->
+
+  <!-- Pack the generator DLL in the analyzers folder -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
+  </ItemGroup>
+</Project>

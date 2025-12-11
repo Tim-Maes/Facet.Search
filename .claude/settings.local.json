@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build src/Facet.Search/Facet.Search.csproj)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
