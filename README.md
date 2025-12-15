@@ -69,10 +69,10 @@ public class Product
 ### 2. Use Generated Code
 
 The source generator automatically creates:
-- `ProductSearchFilter` — Filter class with all facet properties
-- `ProductSearchExtensions` — LINQ extension methods
-- `ProductFacetAggregations` — Aggregation results
-- `ProductSearchMetadata` — Facet metadata for frontends
+- `ProductSearchFilter` > Filter class with all facet properties
+- `ProductSearchExtensions` > LINQ extension methods
+- `ProductFacetAggregations` > Aggregation results
+- `ProductSearchMetadata` > Facet metadata for frontends
 
 ```csharp
 using YourNamespace.Search;
@@ -107,7 +107,7 @@ foreach (var facet in ProductSearchMetadata.Facets)
 
 ## How It Works with EF Core
 
-**All generated filters are translated to SQL** — no client-side evaluation for facet filters.
+**All generated filters are translated to SQL**, no client-side evaluation for facet filters.
 
 | Filter Type | Generated Code | SQL Translation |
 |-------------|---------------|-----------------|
