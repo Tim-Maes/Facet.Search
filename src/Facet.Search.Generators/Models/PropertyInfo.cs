@@ -1,13 +1,12 @@
-using Microsoft.CodeAnalysis;
+using System;
 
 namespace Facet.Search.Generators.Models;
 
-/// <summary>
-/// Basic property information.
-/// </summary>
-internal class PropertyInfo
-{
-    public string Name { get; set; } = null!;
-    public string Type { get; set; } = null!;
-    public AttributeData? Attribute { get; set; }
-}
+internal sealed record PropertyInfo(
+    string Name,
+    string Type,
+    float Weight = 1.0f,
+    bool CaseSensitive = false,
+    string Behavior = "Contains",
+    bool Sortable = true
+) : IEquatable<PropertyInfo>;

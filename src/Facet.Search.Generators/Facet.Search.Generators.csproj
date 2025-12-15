@@ -6,9 +6,12 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
 
-    <!-- Prevent this from being a regular dependency -->
-    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Don't add as lib dependency, but DO include build output in package -->
+    <IncludeBuildOutput>true</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    
+    <!-- Put the DLL in analyzers folder instead of lib -->
+    <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
 
     <!-- NuGet Package Metadata -->
     <PackageId>Facet.Search.Generators</PackageId>
@@ -28,12 +31,8 @@
   <!-- Note: We don't reference Facet.Search directly to avoid circular dependencies -->
   <!-- The generator reads attribute names as strings from the compilation -->
 
-  <!-- Pack the generator DLL in the analyzers folder -->
+  <!-- README file for NuGet -->
   <ItemGroup>
-    <None Include="$(OutputPath)\$(AssemblyName).dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

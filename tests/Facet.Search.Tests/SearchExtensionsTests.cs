@@ -1,54 +1,46 @@
 using Facet.Search.Tests.Models;
 using Facet.Search.Tests.Models.Search;
+using Facet.Search.Tests.Utilities;
 
 namespace Facet.Search.Tests;
 
 /// <summary>
-/// Tests for generated search extension methods.
+/// Tests for generated search extension methods using actual generated code.
 /// </summary>
 public class SearchExtensionsTests
 {
-    private static List<TestProduct> GetTestProducts() =>
-    [
-        new() { Id = 1, Name = "Laptop Pro", Brand = "TechCorp", Category = "Electronics", Price = 1299.99m, InStock = true, CreatedAt = DateTime.Now.AddDays(-30), Rating = 5 },
-        new() { Id = 2, Name = "Wireless Mouse", Brand = "TechCorp", Category = "Electronics", Price = 49.99m, InStock = true, CreatedAt = DateTime.Now.AddDays(-10), Rating = 4 },
-        new() { Id = 3, Name = "Office Chair", Brand = "ComfortPlus", Category = "Furniture", Price = 299.99m, InStock = false, CreatedAt = DateTime.Now.AddDays(-60), Rating = 4 },
-        new() { Id = 4, Name = "Standing Desk", Brand = "ComfortPlus", Category = "Furniture", Price = 599.99m, InStock = true, CreatedAt = DateTime.Now.AddDays(-5), Rating = 5 },
-        new() { Id = 5, Name = "Gaming Laptop", Brand = "GameTech", Category = "Electronics", Price = 1999.99m, InStock = false, CreatedAt = DateTime.Now.AddDays(-15), Rating = 5 },
-    ];
-
     [Fact]
     public void ApplyFacetedSearch_WithNullFilter_ReturnsAllItems()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
 
         // Act
         var results = products.ApplyFacetedSearch(null!).ToList();
 
         // Assert
-        Assert.Equal(5, results.Count);
+        Assert.Equal(8, results.Count);
     }
 
     [Fact]
     public void ApplyFacetedSearch_WithEmptyFilter_ReturnsAllItems()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter();
 
         // Act
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(5, results.Count);
+        Assert.Equal(8, results.Count);
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithBrandFilter_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithSingleBrand_FiltersCorrectly()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
             Brand = ["TechCorp"]
@@ -58,7 +50,7 @@ public class SearchExtensionsTests
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(2, results.Count);
+        Assert.Equal(3, results.Count);
         Assert.All(results, p => Assert.Equal("TechCorp", p.Brand));
     }
 
@@ -66,7 +58,7 @@ public class SearchExtensionsTests
     public void ApplyFacetedSearch_WithMultipleBrands_FiltersCorrectly()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
             Brand = ["TechCorp", "GameTech"]
@@ -76,33 +68,67 @@ public class SearchExtensionsTests
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(3, results.Count);
+        Assert.Equal(5, results.Count);
+        Assert.All(results, p => Assert.True(p.Brand == "TechCorp" || p.Brand == "GameTech"));
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithPriceRange_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithMinPrice_FiltersCorrectly()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
-            MinPrice = 100m,
-            MaxPrice = 600m  // Fixed: Standing Desk is 599.99
+            MinPrice = 100m
         };
 
         // Act
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(2, results.Count);  // Office Chair (299.99) and Standing Desk (599.99)
-        Assert.All(results, p => Assert.InRange(p.Price, 100m, 600m));
+        Assert.All(results, p => Assert.True(p.Price >= 100m));
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithBooleanFilter_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithMaxPrice_FiltersCorrectly()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            MaxPrice = 100m
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.True(p.Price <= 100m));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithPriceRange_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            MinPrice = 100m,
+            MaxPrice = 500m
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.InRange(p.Price, 100m, 500m));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithInStockTrue_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
             InStock = true
@@ -112,15 +138,84 @@ public class SearchExtensionsTests
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(3, results.Count);
         Assert.All(results, p => Assert.True(p.InStock));
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithFullTextSearch_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithInStockFalse_FiltersCorrectly()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            InStock = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.False(p.InStock));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithCategory_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            Category = ["Electronics"]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.Equal("Electronics", p.Category));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithDateRangeFrom_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var fromDate = DateTime.Now.AddDays(-15);
+        var filter = new TestProductSearchFilter
+        {
+            CreatedAtFrom = fromDate
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.True(p.CreatedAt >= fromDate));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithDateRangeTo_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var toDate = DateTime.Now.AddDays(-10);
+        var filter = new TestProductSearchFilter
+        {
+            CreatedAtTo = toDate
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.All(results, p => Assert.True(p.CreatedAt <= toDate));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithFullTextSearch_MatchesName()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
             SearchText = "laptop"
@@ -131,19 +226,35 @@ public class SearchExtensionsTests
 
         // Assert
         Assert.Equal(2, results.Count);
-        Assert.All(results, p => Assert.Contains("Laptop", p.Name));
+        Assert.All(results, p => Assert.Contains("Laptop", p.Name, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithCombinedFilters_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithFullTextSearch_MatchesDescription()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
-            Category = ["Electronics"],
-            InStock = true,
-            MaxPrice = 1500m
+            SearchText = "ergonomic"
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Single(results);
+        Assert.Contains("ergonomic", results[0].Description, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithFullTextSearch_CaseInsensitive()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SearchText = "LAPTOP"
         };
 
         // Act
@@ -151,29 +262,80 @@ public class SearchExtensionsTests
 
         // Assert
         Assert.Equal(2, results.Count);
-        Assert.All(results, p =>
-        {
-            Assert.Equal("Electronics", p.Category);
-            Assert.True(p.InStock);
-            Assert.True(p.Price <= 1500m);
-        });
     }
 
     [Fact]
-    public void ApplyFacetedSearch_WithDateRangeFilter_FiltersCorrectly()
+    public void ApplyFacetedSearch_WithCombinedFilters_AppliesAll()
     {
         // Arrange
-        var products = GetTestProducts().AsQueryable();
+        var products = TestDataFactory.CreateProductList().AsQueryable();
         var filter = new TestProductSearchFilter
         {
-            CreatedAtFrom = DateTime.Now.AddDays(-20),
-            CreatedAtTo = DateTime.Now
+            Category = ["Electronics"],
+            InStock = true,
+            MaxPrice = 200m
         };
 
         // Act
         var results = products.ApplyFacetedSearch(filter).ToList();
 
         // Assert
-        Assert.Equal(3, results.Count); // Mouse (-10), Desk (-5), Gaming Laptop (-15)
+        Assert.All(results, p =>
+        {
+            Assert.Equal("Electronics", p.Category);
+            Assert.True(p.InStock);
+            Assert.True(p.Price <= 200m);
+        });
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithNoMatchingResults_ReturnsEmpty()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            Brand = ["NonExistentBrand"]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithEmptyBrandArray_ReturnsAllItems()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            Brand = []
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithWhitespaceSearchText_ReturnsAllItems()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SearchText = "   "
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
     }
 }

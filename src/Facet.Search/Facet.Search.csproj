@@ -12,8 +12,16 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <!-- Reference Generators project to ensure build order, but don't include as dependency -->
+  <ItemGroup>
+    <ProjectReference Include="..\Facet.Search.Generators\Facet.Search.Generators.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
   <!-- Include the generator DLL in the NuGet package as an analyzer -->
-  <!-- Note: This is for packaging only, not for build-time reference -->
   <ItemGroup>
     <None Include="..\..\README.md">
       <Pack>True</Pack>

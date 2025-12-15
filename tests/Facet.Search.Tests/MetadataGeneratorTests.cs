@@ -3,56 +3,96 @@ using Facet.Search.Tests.Models.Search;
 namespace Facet.Search.Tests;
 
 /// <summary>
-/// Tests for generated metadata.
+/// Tests for generated metadata using actual generated code.
 /// </summary>
 public class MetadataGeneratorTests
 {
     [Fact]
-    public void Metadata_ShouldContainAllFacets()
+    public void Metadata_ContainsAllFacets()
     {
-        // Arrange & Act
+        // Act
         var facets = TestProductSearchMetadata.Facets;
 
-        // Assert
+        // Assert - Brand, Category, Price, InStock, CreatedAt = 5 facets
         Assert.Equal(5, facets.Count);
     }
 
     [Fact]
-    public void Metadata_ShouldHaveCorrectFacetNames()
+    public void Metadata_BrandFacet_HasCorrectProperties()
     {
-        // Arrange & Act
-        var facets = TestProductSearchMetadata.Facets;
-        var facetNames = facets.Select(f => f.Name).ToList();
+        // Act
+        var brandFacet = TestProductSearchMetadata.Facets.First(f => f.PropertyName == "Brand");
 
         // Assert
-        Assert.Contains("Brand", facetNames);
-        Assert.Contains("Category", facetNames);
-        Assert.Contains("Price", facetNames);
-        Assert.Contains("InStock", facetNames);
-        Assert.Contains("CreatedAt", facetNames);
-    }
-
-    [Fact]
-    public void Metadata_ShouldHaveCorrectDisplayNames()
-    {
-        // Arrange & Act
-        var facets = TestProductSearchMetadata.Facets;
-        var brandFacet = facets.First(f => f.Name == "Brand");
-
-        // Assert
+        Assert.Equal("Brand", brandFacet.PropertyName);
         Assert.Equal("Brand Name", brandFacet.DisplayName);
+        Assert.Equal("Categorical", brandFacet.Type);
+        Assert.False(brandFacet.IsHierarchical);
     }
 
     [Fact]
-    public void Metadata_ShouldHaveCorrectFacetTypes()
+    public void Metadata_PriceFacet_HasCorrectType()
     {
-        // Arrange & Act
+        // Act
+        var priceFacet = TestProductSearchMetadata.Facets.First(f => f.PropertyName == "Price");
+
+        // Assert
+        Assert.Equal("Price", priceFacet.PropertyName);
+        Assert.Equal("Price", priceFacet.DisplayName);
+        Assert.Equal("Range", priceFacet.Type);
+    }
+
+    [Fact]
+    public void Metadata_InStockFacet_HasCorrectType()
+    {
+        // Act
+        var inStockFacet = TestProductSearchMetadata.Facets.First(f => f.PropertyName == "InStock");
+
+        // Assert
+        Assert.Equal("InStock", inStockFacet.PropertyName);
+        Assert.Equal("In Stock", inStockFacet.DisplayName);
+        Assert.Equal("Boolean", inStockFacet.Type);
+    }
+
+    [Fact]
+    public void Metadata_CreatedAtFacet_HasCorrectType()
+    {
+        // Act
+        var createdAtFacet = TestProductSearchMetadata.Facets.First(f => f.PropertyName == "CreatedAt");
+
+        // Assert
+        Assert.Equal("CreatedAt", createdAtFacet.PropertyName);
+        Assert.Equal("Created Date", createdAtFacet.DisplayName);
+        Assert.Equal("DateRange", createdAtFacet.Type);
+    }
+
+    [Fact]
+    public void Metadata_FacetsAreReadOnly()
+    {
+        // Act
         var facets = TestProductSearchMetadata.Facets;
 
         // Assert
-        Assert.Equal("Categorical", facets.First(f => f.Name == "Brand").Type);
-        Assert.Equal("Range", facets.First(f => f.Name == "Price").Type);
-        Assert.Equal("Boolean", facets.First(f => f.Name == "InStock").Type);
-        Assert.Equal("DateRange", facets.First(f => f.Name == "CreatedAt").Type);
+        Assert.IsAssignableFrom<IReadOnlyList<TestProductFacetMetadata>>(facets);
+    }
+
+    [Fact]
+    public void Metadata_AllFacetsHaveOrderBy()
+    {
+        // Act
+        var facets = TestProductSearchMetadata.Facets;
+
+        // Assert
+        Assert.All(facets, f => Assert.NotNull(f.OrderBy));
+    }
+
+    [Fact]
+    public void Metadata_CategoryFacet_HasCorrectDisplayName()
+    {
+        // Act
+        var categoryFacet = TestProductSearchMetadata.Facets.First(f => f.PropertyName == "Category");
+
+        // Assert
+        Assert.Equal("Category", categoryFacet.DisplayName);
     }
 }
