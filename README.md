@@ -8,9 +8,9 @@
 [![GitHub](https://img.shields.io/github/license/Tim-Maes/Facet.Search.svg)](https://github.com/Tim-Maes/Facet.Search/blob/main/LICENSE.txt)
 [![Discord](https://img.shields.io/discord/1443287393825329223?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/yGDBhGuNMB)
 
-**Compile-time faceted search generation for .NET** — Zero boilerplate, type-safe, and performant.
+**Compile-time faceted search generation for .NET**, Zero boilerplate, type-safe, and performant.
 
-Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models — all at compile time with no runtime overhead.
+Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models, all at compile time with no runtime overhead.
 
 ## Features
 
