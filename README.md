@@ -8,20 +8,20 @@
 [![GitHub](https://img.shields.io/github/license/Tim-Maes/Facet.Search.svg)](https://github.com/Tim-Maes/Facet.Search/blob/main/LICENSE.txt)
 [![Discord](https://img.shields.io/discord/1443287393825329223?color=%237289da&label=Discord&logo=discord&logoColor=%237289da&style=flat-square)](https://discord.gg/yGDBhGuNMB)
 
-**Compile-time faceted search generation for .NET** — Zero boilerplate, type-safe, and performant.
+**Compile-time faceted search generation for .NET** â€” Zero boilerplate, type-safe, and performant.
 
-Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models — all at compile time with no runtime overhead.
+Facet.Search uses source generators to automatically create search filter classes, LINQ extension methods, facet aggregations, and metadata from your domain models â€” all at compile time with no runtime overhead.
 
 ## Features
 
-- **Zero Boilerplate** — Just add attributes to your models  
-- **Type-Safe** — All filters are compile-time checked  
-- **Performant** — Generated code is as efficient as hand-written  
-- **SQL Translated** — All filters execute on the database, not in memory  
-- **EF Core Integration** — Async extensions for Entity Framework Core  
-- **Full-Text Search** — Built-in text search with multiple strategies  
-- **Facet Aggregations** — Automatic counting and range detection  
-- **Frontend Metadata** — Generate facet metadata for UI consumption  
+- **Zero Boilerplate** - Just add attributes to your models  
+- **Type-Safe** - All filters are compile-time checked  
+- **Performant** - Generated code is as efficient as hand-written  
+- **SQL Translated** - All filters execute on the database, not in memory  
+- **EF Core Integration** - Async extensions for Entity Framework Core  
+- **Full-Text Search** - Built-in text search with multiple strategies  
+- **Facet Aggregations** - Automatic counting and range detection  
+- **Frontend Metadata** - Generate facet metadata for UI consumption  
 
 ## Installation
 
@@ -69,10 +69,10 @@ public class Product
 ### 2. Use Generated Code
 
 The source generator automatically creates:
-- `ProductSearchFilter` — Filter class with all facet properties
-- `ProductSearchExtensions` — LINQ extension methods
-- `ProductFacetAggregations` — Aggregation results
-- `ProductSearchMetadata` — Facet metadata for frontends
+- `ProductSearchFilter` â€” Filter class with all facet properties
+- `ProductSearchExtensions` â€” LINQ extension methods
+- `ProductFacetAggregations` â€” Aggregation results
+- `ProductSearchMetadata` â€” Facet metadata for frontends
 
 ```csharp
 using YourNamespace.Search;
@@ -107,7 +107,7 @@ foreach (var facet in ProductSearchMetadata.Facets)
 
 ## How It Works with EF Core
 
-**All generated filters are translated to SQL** — no client-side evaluation for facet filters.
+**All generated filters are translated to SQL** â€” no client-side evaluation for facet filters.
 
 | Filter Type | Generated Code | SQL Translation |
 |-------------|---------------|-----------------|
@@ -276,7 +276,7 @@ obj/Debug/net8.0/generated/Facet.Search.Generators/
 
 ## License
 
-MIT License — see [LICENSE.txt](LICENSE.txt) for details.
+MIT License â€” see [LICENSE.txt](LICENSE.txt) for details.
 
 ## Contributing
 
@@ -284,4 +284,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Related Projects
 
-- [Facet](https://github.com/Tim-Maes/Facet) — The Facet ecosystem
+- [Facet](https://github.com/Tim-Maes/Facet) â€” The Facet ecosystem
