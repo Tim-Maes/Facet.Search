@@ -18,7 +18,7 @@ Facet.Search uses source generators to automatically create search filter classe
 - **Type-Safe** - All filters are compile-time checked  
 - **Performant** - Generated code is as efficient as hand-written  
 - **SQL Translated** - All filters execute on the database, not in memory  
-- **EF Core Integration** - [https://github.com/Tim-Maes/Facet.Search/tree/master/src/Facet.Search.EFCore](Extensions for EF Core) & multiple DB providers 
+- **EF Core Integration** - [Extensions for EF Core](https://github.com/Tim-Maes/Facet.Search/tree/master/src/Facet.Search.EFCore) & multiple DB providers 
 - **Full-Text Search** - Built-in text search with multiple strategies  
 - **Facet Aggregations** - Automatic counting and range detection  
 - **Frontend Metadata** - Generate facet metadata for UI consumption  
