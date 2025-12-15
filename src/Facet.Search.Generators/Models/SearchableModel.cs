@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -11,11 +12,31 @@ internal sealed record SearchableModel(
     string FilterClassName,
     bool GenerateAggregations,
     bool GenerateMetadata,
+    string FullTextStrategy,
     EquatableArray<SearchFacetInfo> Facets,
     EquatableArray<PropertyInfo> FullTextProperties,
     EquatableArray<PropertyInfo> SearchableProperties
 ) : IEquatable<SearchableModel>
 {
+    /// <summary>
+    /// Gets all unique navigation property paths that require Include() calls.
+    /// </summary>
+    public IEnumerable<string> GetRequiredIncludes()
+    {
+        var includes = new HashSet<string>();
+
+        // From facets with NavigationPath
+        foreach (var facet in Facets)
+        {
+            if (facet.RequiresInclude && facet.RootNavigationProperty != null)
+            {
+                includes.Add(facet.RootNavigationProperty);
+            }
+        }
+
+        return includes;
+    }
+
     public static SearchableModel Create(INamedTypeSymbol classSymbol, AttributeData facetedSearchAttr)
     {
         var className = classSymbol.Name;
@@ -25,6 +46,7 @@ internal sealed record SearchableModel(
             ?? $"{className}SearchFilter";
         var generateAggregations = GetNamedArgument<bool>(facetedSearchAttr, "GenerateAggregations", true);
         var generateMetadata = GetNamedArgument<bool>(facetedSearchAttr, "GenerateMetadata", true);
+        var fullTextStrategy = GetEnumArgument(facetedSearchAttr, "FullTextStrategy") ?? "LinqContains";
 
         var customNamespace = GetNamedArgument<string>(facetedSearchAttr, "Namespace");
         if (!string.IsNullOrEmpty(customNamespace))
@@ -45,14 +67,15 @@ internal sealed record SearchableModel(
 
             if (searchFacetAttr != null)
                 facetsBuilder.Add(SearchFacetInfo.Create(member, searchFacetAttr));
-            else if (fullTextAttr != null)
+            
+            if (fullTextAttr != null)
                 fullTextBuilder.Add(CreateFullTextPropertyInfo(member, fullTextAttr));
             else if (searchableAttr != null)
                 searchableBuilder.Add(CreateSearchablePropertyInfo(member, searchableAttr));
         }
 
         return new SearchableModel(
-            className, ns, filterClassName, generateAggregations, generateMetadata,
+            className, ns, filterClassName, generateAggregations, generateMetadata, fullTextStrategy,
             facetsBuilder.ToImmutable().ToEquatableArray(),
             fullTextBuilder.ToImmutable().ToEquatableArray(),
             searchableBuilder.ToImmutable().ToEquatableArray());
@@ -99,6 +122,13 @@ internal sealed record SearchableModel(
     {
         var arg = attribute.NamedArguments.FirstOrDefault(na => na.Key == name);
         return arg.Value.Value is T value ? value : defaultValue;
+    }
+
+    private static string? GetEnumArgument(AttributeData attribute, string name)
+    {
+        var arg = attribute.NamedArguments.FirstOrDefault(na => na.Key == name);
+        if (arg.Value.Value == null) return null;
+        return GetEnumName(arg.Value);
     }
 
     private static string? GetEnumName(TypedConstant constant)

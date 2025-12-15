@@ -27,4 +27,10 @@ public sealed class FacetedSearchAttribute : Attribute
     /// Namespace for generated code. Defaults to source class namespace + ".Search".
     /// </summary>
     public string? Namespace { get; set; }
+
+    /// <summary>
+    /// The strategy to use for full-text search.
+    /// Defaults to LinqContains which translates to SQL LIKE '%term%'.
+    /// </summary>
+    public FullTextSearchStrategy FullTextStrategy { get; set; } = FullTextSearchStrategy.LinqContains;
 }

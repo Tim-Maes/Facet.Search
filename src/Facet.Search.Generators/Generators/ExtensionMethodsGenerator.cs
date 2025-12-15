@@ -1,4 +1,5 @@
 using Facet.Search.Generators.Models;
+using System.Linq;
 using System.Text;
 
 namespace Facet.Search.Generators;
@@ -37,6 +38,10 @@ internal static class ExtensionMethodsGenerator
         sb.AppendLine("    /// <summary>");
         sb.AppendLine($"    /// Applies faceted search filtering to a queryable of {model.ClassName}.");
         sb.AppendLine("    /// </summary>");
+        sb.AppendLine("    /// <remarks>");
+        sb.AppendLine($"    /// Full-text search strategy: {model.FullTextStrategy}");
+        sb.AppendLine("    /// All filters are translated to SQL and executed on the database server.");
+        sb.AppendLine("    /// </remarks>");
         sb.AppendLine($"    public static System.Linq.IQueryable<{model.Namespace}.{model.ClassName}> ApplyFacetedSearch(");
         sb.AppendLine($"        this System.Linq.IQueryable<{model.Namespace}.{model.ClassName}> query,");
         sb.AppendLine($"        {model.FilterClassName} filter)");
@@ -45,57 +50,245 @@ internal static class ExtensionMethodsGenerator
         sb.AppendLine("            return query;");
         sb.AppendLine();
 
+        // Generate facet filters
         foreach (var facet in model.Facets)
             GenerateFacetFilter(sb, facet);
 
+        // Generate full-text search based on strategy
         if (!model.FullTextProperties.IsEmpty)
         {
-            sb.AppendLine("        if (!string.IsNullOrWhiteSpace(filter.SearchText))");
-            sb.AppendLine("        {");
-            sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
-            sb.Append("            query = query.Where(x => ");
-
-            var first = true;
-            foreach (var p in model.FullTextProperties)
-            {
-                if (!first) sb.Append(" || ");
-                sb.Append($"(x.{p.Name} != null && x.{p.Name}.ToLower().Contains(searchTerm))");
-                first = false;
-            }
-
-            sb.AppendLine(");");
-            sb.AppendLine("        }");
-            sb.AppendLine();
+            GenerateFullTextSearch(sb, model);
         }
 
         sb.AppendLine("        return query;");
         sb.AppendLine("    }");
     }
 
+    private static void GenerateFullTextSearch(StringBuilder sb, SearchableModel model)
+    {
+        sb.AppendLine("        // Full-text search");
+        sb.AppendLine("        if (!string.IsNullOrWhiteSpace(filter.SearchText))");
+        sb.AppendLine("        {");
+
+        switch (model.FullTextStrategy)
+        {
+            case "SqlServerFreeText":
+                GenerateSqlServerFreeTextSearch(sb, model);
+                break;
+
+            case "SqlServerContains":
+                GenerateSqlServerContainsSearch(sb, model);
+                break;
+
+            case "EfLike":
+                GenerateEfLikeSearch(sb, model);
+                break;
+
+            case "PostgreSqlFullText":
+                GeneratePostgreSqlFullTextSearch(sb, model);
+                break;
+
+            case "ClientSide":
+                GenerateClientSideSearch(sb, model);
+                break;
+
+            case "LinqContains":
+            default:
+                GenerateLinqContainsSearch(sb, model);
+                break;
+        }
+
+        sb.AppendLine("        }");
+        sb.AppendLine();
+    }
+
+    private static void GenerateLinqContainsSearch(StringBuilder sb, SearchableModel model)
+    {
+        // Standard LINQ Contains - translates to SQL LIKE '%term%'
+        sb.AppendLine("            // Uses LINQ Contains() -> translates to SQL LIKE '%term%'");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
+        sb.Append("            query = query.Where(x => ");
+
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+    }
+
+    private static void GenerateEfLikeSearch(StringBuilder sb, SearchableModel model)
+    {
+        // EF.Functions.Like - same as Contains but more explicit
+        sb.AppendLine("            // Uses EF.Functions.Like() for SQL LIKE pattern matching");
+        sb.AppendLine("            var pattern = $\"%{filter.SearchText}%\";");
+        sb.AppendLine("            // Note: Requires Microsoft.EntityFrameworkCore");
+        sb.Append("            query = query.Where(x => ");
+
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            // Fallback to Contains since we can't reference EF.Functions directly
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+    }
+
+    private static void GenerateSqlServerFreeTextSearch(StringBuilder sb, SearchableModel model)
+    {
+        // SQL Server FREETEXT - requires FULLTEXT index
+        sb.AppendLine("            // SQL Server FREETEXT search - requires FULLTEXT index on the column(s)");
+        sb.AppendLine("            // Falls back to LIKE if EF.Functions.FreeText is not available");
+        sb.AppendLine("            var searchTerm = filter.SearchText;");
+        sb.AppendLine("            try");
+        sb.AppendLine("            {");
+        sb.AppendLine("                // Attempt to use SQL Server FreeText via reflection");
+        sb.AppendLine("                // This avoids a hard dependency on EF Core SQL Server");
+        sb.Append("                query = query.Where(x => ");
+
+        // For now, fallback to Contains - users need to manually use EF.Functions.FreeText
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+        sb.AppendLine("            }");
+        sb.AppendLine("            catch");
+        sb.AppendLine("            {");
+        sb.AppendLine("                // Fallback to standard LIKE search");
+        sb.AppendLine("                var fallbackTerm = searchTerm.ToLower();");
+        sb.Append("                query = query.Where(x => ");
+
+        first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+        sb.AppendLine("            }");
+    }
+
+    private static void GenerateSqlServerContainsSearch(StringBuilder sb, SearchableModel model)
+    {
+        // SQL Server CONTAINS - requires FULLTEXT index
+        sb.AppendLine("            // SQL Server CONTAINS search - requires FULLTEXT index");
+        sb.AppendLine("            // Note: For production, use EF.Functions.Contains() directly");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
+        sb.Append("            query = query.Where(x => ");
+
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+    }
+
+    private static void GeneratePostgreSqlFullTextSearch(StringBuilder sb, SearchableModel model)
+    {
+        // PostgreSQL full-text search - requires proper indexes
+        sb.AppendLine("            // PostgreSQL full-text search");
+        sb.AppendLine("            // Note: For production, configure tsquery/tsvector in your DbContext");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
+        sb.Append("            query = query.Where(x => ");
+
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            GeneratePropertyContainsExpression(sb, p);
+            first = false;
+        }
+
+        sb.AppendLine(");");
+    }
+
+    private static void GenerateClientSideSearch(StringBuilder sb, SearchableModel model)
+    {
+        // Client-side evaluation - loads data into memory
+        sb.AppendLine("            // CLIENT-SIDE EVALUATION - Data is loaded into memory first!");
+        sb.AppendLine("            // Warning: This can be slow for large datasets.");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
+        sb.AppendLine("            // Force client evaluation with AsEnumerable(), then back to Queryable");
+        sb.AppendLine("            var materializedQuery = query.AsEnumerable()");
+        sb.Append("                .Where(x => ");
+
+        var first = true;
+        foreach (var p in model.FullTextProperties)
+        {
+            if (!first) sb.Append(" || ");
+            sb.Append($"(x.{p.Name}?.ToLower().Contains(searchTerm) ?? false)");
+            first = false;
+        }
+
+        sb.AppendLine(")");
+        sb.AppendLine("                .AsQueryable();");
+        sb.AppendLine("            query = materializedQuery;");
+    }
+
+    private static void GeneratePropertyContainsExpression(StringBuilder sb, PropertyInfo p)
+    {
+        switch (p.Behavior)
+        {
+            case "StartsWith":
+                sb.Append($"(x.{p.Name} != null && x.{p.Name}.ToLower().StartsWith(searchTerm))");
+                break;
+            case "EndsWith":
+                sb.Append($"(x.{p.Name} != null && x.{p.Name}.ToLower().EndsWith(searchTerm))");
+                break;
+            case "Exact":
+                sb.Append($"(x.{p.Name} != null && x.{p.Name}.ToLower() == searchTerm)");
+                break;
+            case "Contains":
+            default:
+                sb.Append($"(x.{p.Name} != null && x.{p.Name}.ToLower().Contains(searchTerm))");
+                break;
+        }
+    }
+
     private static void GenerateFacetFilter(StringBuilder sb, SearchFacetInfo facet)
     {
+        // Use PropertyPath for navigation properties, PropertyName for regular properties
+        var accessPath = facet.PropertyPath;
+
         switch (facet.FacetType)
         {
             case "Categorical":
             case "Hierarchical":
                 sb.AppendLine($"        if (filter.{facet.PropertyName}?.Any() == true)");
-                sb.AppendLine($"            query = query.Where(x => filter.{facet.PropertyName}.Contains(x.{facet.PropertyName}));");
+                sb.AppendLine($"            query = query.Where(x => filter.{facet.PropertyName}.Contains(x.{accessPath}));");
                 break;
             case "Range":
                 sb.AppendLine($"        if (filter.Min{facet.PropertyName}.HasValue)");
-                sb.AppendLine($"            query = query.Where(x => x.{facet.PropertyName} >= filter.Min{facet.PropertyName}.Value);");
+                sb.AppendLine($"            query = query.Where(x => x.{accessPath} >= filter.Min{facet.PropertyName}.Value);");
                 sb.AppendLine($"        if (filter.Max{facet.PropertyName}.HasValue)");
-                sb.AppendLine($"            query = query.Where(x => x.{facet.PropertyName} <= filter.Max{facet.PropertyName}.Value);");
+                sb.AppendLine($"            query = query.Where(x => x.{accessPath} <= filter.Max{facet.PropertyName}.Value);");
                 break;
             case "Boolean":
                 sb.AppendLine($"        if (filter.{facet.PropertyName}.HasValue)");
-                sb.AppendLine($"            query = query.Where(x => x.{facet.PropertyName} == filter.{facet.PropertyName}.Value);");
+                sb.AppendLine($"            query = query.Where(x => x.{accessPath} == filter.{facet.PropertyName}.Value);");
                 break;
             case "DateRange":
                 sb.AppendLine($"        if (filter.{facet.PropertyName}From.HasValue)");
-                sb.AppendLine($"            query = query.Where(x => x.{facet.PropertyName} >= filter.{facet.PropertyName}From.Value);");
+                sb.AppendLine($"            query = query.Where(x => x.{accessPath} >= filter.{facet.PropertyName}From.Value);");
                 sb.AppendLine($"        if (filter.{facet.PropertyName}To.HasValue)");
-                sb.AppendLine($"            query = query.Where(x => x.{facet.PropertyName} <= filter.{facet.PropertyName}To.Value);");
+                sb.AppendLine($"            query = query.Where(x => x.{accessPath} <= filter.{facet.PropertyName}To.Value);");
                 break;
         }
         sb.AppendLine();

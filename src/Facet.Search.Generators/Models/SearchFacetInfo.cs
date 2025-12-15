@@ -14,9 +14,39 @@ internal sealed record SearchFacetInfo(
     string? DependsOn,
     bool IsHierarchical,
     string RangeAggregation,
-    string? RangeIntervals
+    string? RangeIntervals,
+    string? NavigationPath,
+    bool AutoInclude
 ) : IEquatable<SearchFacetInfo>
 {
+    /// <summary>
+    /// Gets the property path used in LINQ expressions.
+    /// If NavigationPath is set, returns the full path (e.g., "Category.Name").
+    /// Otherwise, returns just the property name.
+    /// </summary>
+    public string PropertyPath => NavigationPath ?? PropertyName;
+
+    /// <summary>
+    /// Gets the root navigation property name for Include() calls.
+    /// E.g., "Category.Name" returns "Category".
+    /// </summary>
+    public string? RootNavigationProperty
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(NavigationPath))
+                return null;
+
+            var dotIndex = NavigationPath!.IndexOf('.');
+            return dotIndex > 0 ? NavigationPath.Substring(0, dotIndex) : NavigationPath;
+        }
+    }
+
+    /// <summary>
+    /// Gets whether this facet requires a navigation property include.
+    /// </summary>
+    public bool RequiresInclude => AutoInclude && !string.IsNullOrEmpty(NavigationPath);
+
     public static SearchFacetInfo Create(IPropertySymbol property, AttributeData attribute)
     {
         var propertyName = property.Name;
@@ -29,6 +59,8 @@ internal sealed record SearchFacetInfo(
         var isHierarchical = false;
         var rangeAggregation = "Auto";
         string? rangeIntervals = null;
+        string? navigationPath = null;
+        var autoInclude = true;
 
         foreach (var namedArg in attribute.NamedArguments)
         {
@@ -58,12 +90,19 @@ internal sealed record SearchFacetInfo(
                 case "RangeIntervals":
                     rangeIntervals = namedArg.Value.Value?.ToString();
                     break;
+                case "NavigationPath":
+                    navigationPath = namedArg.Value.Value?.ToString();
+                    break;
+                case "AutoInclude":
+                    autoInclude = (bool)(namedArg.Value.Value ?? true);
+                    break;
             }
         }
 
         return new SearchFacetInfo(
             propertyName, propertyType, facetType, displayName, orderBy,
-            limit, dependsOn, isHierarchical, rangeAggregation, rangeIntervals);
+            limit, dependsOn, isHierarchical, rangeAggregation, rangeIntervals,
+            navigationPath, autoInclude);
     }
 
     private static string? GetEnumName(TypedConstant constant)
