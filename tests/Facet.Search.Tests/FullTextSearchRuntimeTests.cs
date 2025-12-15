@@ -1,27 +1,19 @@
 using Facet.Search.Tests.Models;
 using Facet.Search.Tests.Models.Search;
+using Facet.Search.Tests.Utilities;
 
 namespace Facet.Search.Tests;
 
 /// <summary>
-/// Runtime tests for full-text search behaviors with generated code.
+/// Tests for generated full-text search functionality using actual generated code.
 /// </summary>
 public class FullTextSearchRuntimeTests
 {
-    private static List<TestArticle> GetTestArticles() =>
-    [
-        new() { Id = 1, Title = "Getting Started with C#", Slug = "getting-started-csharp", Code = "CS001", Author = "John" },
-        new() { Id = 2, Title = "Advanced C# Patterns", Slug = "advanced-csharp-patterns", Code = "CS002", Author = "Jane" },
-        new() { Id = 3, Title = "Introduction to F#", Slug = "intro-fsharp", Code = "FS001", Author = "John" },
-        new() { Id = 4, Title = "Python for Beginners", Slug = "python-beginners", Code = "PY001", Author = "Bob" },
-        new() { Id = 5, Title = "JavaScript Essentials", Slug = "javascript-essentials", Code = "JS001", Author = "Jane" },
-    ];
-
     [Fact]
     public void FullTextSearch_WithTitleMatch_FindsResults()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
             SearchText = "python"
@@ -30,34 +22,34 @@ public class FullTextSearchRuntimeTests
         // Act
         var results = articles.ApplyFacetedSearch(filter).ToList();
 
-        // Assert - Should match "Python for Beginners"
+        // Assert
         Assert.Single(results);
-        Assert.Contains("Python", results[0].Title);
+        Assert.Contains("Python", results[0].Title, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void FullTextSearch_CaseInsensitive_MatchesRegardlessOfCase()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
-            SearchText = "PYTHON"
+            SearchText = "JAVASCRIPT"
         };
 
         // Act
         var results = articles.ApplyFacetedSearch(filter).ToList();
 
-        // Assert - Should match "Python for Beginners" case-insensitively
+        // Assert
         Assert.Single(results);
-        Assert.Contains("Python", results[0].Title);
+        Assert.Contains("JavaScript", results[0].Title);
     }
 
     [Fact]
     public void FullTextSearch_WithNoMatch_ReturnsEmpty()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
             SearchText = "nonexistent"
@@ -74,7 +66,7 @@ public class FullTextSearchRuntimeTests
     public void FullTextSearch_WithEmptySearchText_ReturnsAllItems()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
             SearchText = ""
@@ -91,7 +83,7 @@ public class FullTextSearchRuntimeTests
     public void FullTextSearch_WithNullSearchText_ReturnsAllItems()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
             SearchText = null
@@ -108,7 +100,7 @@ public class FullTextSearchRuntimeTests
     public void FullTextSearch_CombinedWithFacetFilter_AppliesBoth()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
             Author = ["John"],
@@ -118,24 +110,60 @@ public class FullTextSearchRuntimeTests
         // Act
         var results = articles.ApplyFacetedSearch(filter).ToList();
 
-        // Assert - Should only match John's articles with "c#" in title
+        // Assert
         Assert.All(results, a => Assert.Equal("John", a.Author));
+        Assert.All(results, a => Assert.Contains("c#", a.Title.ToLower()));
+    }
+
+    [Fact]
+    public void FullTextSearch_StartsWithBehavior_MatchesSlugStart()
+    {
+        // Arrange - Slug uses StartsWith behavior
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
+        var filter = new TestArticleSearchFilter
+        {
+            SearchText = "getting"  // Matches slug "getting-started-csharp"
+        };
+
+        // Act
+        var results = articles.ApplyFacetedSearch(filter).ToList();
+
+        // Assert - Should match via title (Contains) or slug (StartsWith)
+        Assert.True(results.Count >= 1);
     }
 
     [Fact]
     public void FullTextSearch_MatchesMultipleFields()
     {
         // Arrange
-        var articles = GetTestArticles().AsQueryable();
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
         var filter = new TestArticleSearchFilter
         {
-            SearchText = "getting"
+            SearchText = "intro"  // Matches slug "intro-fsharp" (StartsWith)
         };
 
         // Act
         var results = articles.ApplyFacetedSearch(filter).ToList();
 
-        // Assert - Should match via title "Getting Started with C#" or slug
+        // Assert
         Assert.True(results.Count >= 1);
+    }
+
+    [Fact]
+    public void FullTextSearch_WithPartialMatch_FindsResults()
+    {
+        // Arrange
+        var articles = TestDataFactory.CreateArticleList().AsQueryable();
+        var filter = new TestArticleSearchFilter
+        {
+            SearchText = "begin"  // Contains match in "Python for Beginners"
+        };
+
+        // Act
+        var results = articles.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Single(results);
+        Assert.Contains("Beginners", results[0].Title);
     }
 }
