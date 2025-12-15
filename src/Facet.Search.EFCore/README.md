@@ -15,11 +15,12 @@ dotnet add package Facet.Search.EFCore
 
 ## Features
 
-- **Async Query Execution** — `ExecuteSearchAsync`, `CountSearchResultsAsync`
-- **Pagination** — `ToPagedResultAsync`, `Paginate`
-- **Facet Aggregations** — `AggregateFacetAsync`, `GetRangeAsync`, `CountBooleanAsync`
-- **Sorting** — `SortBy`, `ThenSortBy`
-- **SQL Translated** — All operations execute on the database server
+- **Async Query Execution** - `ExecuteSearchAsync`, `CountSearchResultsAsync`
+- **Pagination** - `ToPagedResultAsync`, `Paginate`
+- **Facet Aggregations** - `AggregateFacetAsync`, `GetRangeAsync`, `CountBooleanAsync`
+- **Sorting** - `SortBy`, `ThenSortBy`
+- **Full-Text Search** - SQL Server FREETEXT/CONTAINS, PostgreSQL ILike, EF.Functions.Like
+- **SQL Translated** - All operations execute on the database server
 
 ## How It Works
 
@@ -68,6 +69,107 @@ var pagedResult = await dbContext.Products
 // pagedResult.HasNextPage / HasPreviousPage
 ```
 
+## Full-Text Search
+
+### Universal LIKE Search
+
+Works with all databases:
+
+```csharp
+using Facet.Search.EFCore;
+
+// Single property
+var results = await dbContext.Products
+    .LikeSearch(p => p.Name, "laptop")
+    .ToListAsync();
+
+// Multiple properties (OR)
+var results = await dbContext.Products
+    .LikeSearch("laptop", p => p.Name, p => p.Description)
+    .ToListAsync();
+```
+
+### SQL Server Full-Text Search
+
+Requires a FULLTEXT index on the column(s):
+
+```sql
+-- Create full-text index
+CREATE FULLTEXT CATALOG ProductsCatalog AS DEFAULT;
+CREATE FULLTEXT INDEX ON Products(Name, Description) KEY INDEX PK_Products;
+```
+
+```csharp
+using Facet.Search.EFCore;
+
+// FREETEXT - Natural language search with word stemming
+var results = await dbContext.Products
+    .FreeTextSearch(p => p.Name, "laptop computer")
+    .ToListAsync();
+
+// Multiple properties
+var results = await dbContext.Products
+    .FreeTextSearch("laptop", p => p.Name, p => p.Description)
+    .ToListAsync();
+
+// CONTAINS - Precise search with boolean operators
+var results = await dbContext.Products
+    .ContainsSearch(p => p.Name, "laptop AND gaming")
+    .ToListAsync();
+
+// CONTAINS supports:
+// - "laptop AND gaming" - Both words
+// - "laptop OR desktop" - Either word  
+// - '"laptop computer"' - Exact phrase
+// - "laptop*" - Prefix search
+// - "laptop NEAR gaming" - Words near each other
+```
+
+### PostgreSQL Full-Text Search
+
+For case-insensitive LIKE (ILike):
+
+```csharp
+using Facet.Search.EFCore;
+
+// Case-insensitive search (PostgreSQL only, falls back to Like on other DBs)
+var results = await dbContext.Products
+    .ILikeSearch(p => p.Name, "LAPTOP")  // Matches "laptop", "Laptop", "LAPTOP"
+    .ToListAsync();
+
+// Multiple properties
+var results = await dbContext.Products
+    .ILikeSearch("laptop", p => p.Name, p => p.Description)
+    .ToListAsync();
+```
+
+For proper tsvector/tsquery search, configure your DbContext:
+
+```csharp
+// 1. Add a tsvector column to your entity
+public class Product
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public NpgsqlTsVector SearchVector { get; set; }  // From NpgsqlTypes
+}
+
+// 2. Configure in OnModelCreating
+modelBuilder.Entity<Product>()
+    .HasGeneratedTsVectorColumn(
+        p => p.SearchVector,
+        "english",
+        p => new { p.Name, p.Description })
+    .HasIndex(p => p.SearchVector)
+    .HasMethod("GIN");
+
+// 3. Query using Npgsql's built-in methods
+var results = await context.Products
+    .Where(p => p.SearchVector.Matches(EF.Functions.ToTsQuery("english", "laptop")))
+    .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.ToTsQuery("english", "laptop")))
+    .ToListAsync();
+```
+
 ## Facet Aggregations
 
 All aggregations are executed as SQL queries on the database:
@@ -76,18 +178,15 @@ All aggregations are executed as SQL queries on the database:
 using Facet.Search.EFCore;
 
 // Get categorical facet counts (e.g., brand -> count)
-// SQL: SELECT Brand, COUNT(*) FROM Products GROUP BY Brand ORDER BY COUNT(*) DESC
 var brandCounts = await dbContext.Products
     .AggregateFacetAsync(p => p.Brand, limit: 10);
 // Returns: { "Apple": 42, "Samsung": 38, "Google": 25, ... }
 
 // Get min/max range for numeric properties
-// SQL: SELECT MIN(Price), MAX(Price) FROM Products
 var (minPrice, maxPrice) = await dbContext.Products
     .GetRangeAsync(p => p.Price);
 
 // Count boolean values
-// SQL: SELECT COUNT(*) WHERE InStock = 1, COUNT(*) WHERE InStock = 0
 var (inStockCount, outOfStockCount) = await dbContext.Products
     .CountBooleanAsync(p => p.InStock);
 ```
@@ -98,14 +197,12 @@ var (inStockCount, outOfStockCount) = await dbContext.Products
 using Facet.Search.EFCore;
 
 // Apply pagination (page 2, 25 items per page)
-// SQL: SELECT ... ORDER BY Id OFFSET 25 ROWS FETCH NEXT 25 ROWS ONLY
 var items = await dbContext.Products
     .ApplyFacetedSearch(filter)
     .Paginate(page: 2, pageSize: 25)
     .ExecuteSearchAsync();
 
 // Apply sorting
-// SQL: SELECT ... ORDER BY Price DESC, Name ASC
 var sorted = await dbContext.Products
     .ApplyFacetedSearch(filter)
     .SortBy(p => p.Price, descending: true)
@@ -163,25 +260,36 @@ public class ProductsController : ControllerBase
 
 ## API Reference
 
+### Full-Text Search Extensions
+
+| Method | Database | Description |
+|--------|----------|-------------|
+| `LikeSearch<T>(property, term)` | All | EF.Functions.Like with wildcards |
+| `LikeSearch<T>(term, properties...)` | All | Multi-property OR search |
+| `ILikeSearch<T>(property, term)` | PostgreSQL | Case-insensitive LIKE |
+| `FreeTextSearch<T>(property, term)` | SQL Server | FREETEXT with word stemming |
+| `FreeTextSearch<T>(term, properties...)` | SQL Server | Multi-property FREETEXT |
+| `ContainsSearch<T>(property, term)` | SQL Server | CONTAINS with boolean operators |
+
 ### Query Extensions
 
-| Method | Description | SQL |
-|--------|-------------|-----|
-| `ExecuteSearchAsync<T>()` | Returns `List<T>` | `SELECT ...` |
-| `CountSearchResultsAsync<T>()` | Returns total count | `SELECT COUNT(*)` |
-| `ToPagedResultAsync<T>(page, pageSize)` | Returns `PagedResult<T>` | Count + Offset/Fetch |
-| `HasResultsAsync<T>()` | Returns `true` if any match | `SELECT TOP 1 ...` |
-| `FirstOrDefaultSearchResultAsync<T>()` | Returns first or `null` | `SELECT TOP 1 ...` |
+| Method | Description |
+|--------|-------------|
+| `ExecuteSearchAsync<T>()` | Returns `List<T>` |
+| `CountSearchResultsAsync<T>()` | Returns total count |
+| `ToPagedResultAsync<T>(page, pageSize)` | Returns `PagedResult<T>` |
+| `HasResultsAsync<T>()` | Returns `true` if any match |
+| `FirstOrDefaultSearchResultAsync<T>()` | Returns first or `null` |
 
 ### Aggregation Extensions
 
-| Method | Description | SQL |
-|--------|-------------|-----|
-| `AggregateFacetAsync<T, TKey>(selector, limit?)` | Groups and counts | `GROUP BY ... ORDER BY COUNT(*)` |
-| `GetMinAsync<T, TResult>(selector)` | Gets minimum value | `SELECT MIN(...)` |
-| `GetMaxAsync<T, TResult>(selector)` | Gets maximum value | `SELECT MAX(...)` |
-| `GetRangeAsync<T, TResult>(selector)` | Gets `(min, max)` tuple | `SELECT MIN(...), MAX(...)` |
-| `CountBooleanAsync<T>(selector)` | Returns `(trueCount, falseCount)` | Two COUNT queries |
+| Method | Description |
+|--------|-------------|
+| `AggregateFacetAsync<T, TKey>(selector, limit?)` | Groups and counts |
+| `GetMinAsync<T, TResult>(selector)` | Gets minimum value |
+| `GetMaxAsync<T, TResult>(selector)` | Gets maximum value |
+| `GetRangeAsync<T, TResult>(selector)` | Gets `(min, max)` tuple |
+| `CountBooleanAsync<T>(selector)` | Returns `(trueCount, falseCount)` |
 
 ### Pagination Extensions
 
@@ -208,9 +316,9 @@ public class PagedResult<T>
 
 ## Performance Tips
 
-1. **Add indexes** on facet columns for faster filtering
-2. **Use `limit` parameter** in `AggregateFacetAsync` to avoid loading all distinct values
-3. **Apply filters before pagination** — the generated code handles this correctly
+1. **Use full-text indexes** for FREETEXT/CONTAINS on large datasets
+2. **Add indexes** on facet columns for faster filtering
+3. **Use `limit` parameter** in `AggregateFacetAsync` to avoid loading all distinct values
 4. **Consider caching aggregations** if they don't change frequently
 5. **Use projection** with `.Select()` if you don't need all columns
 
@@ -219,6 +327,8 @@ public class PagedResult<T>
 - .NET 10.0+
 - Entity Framework Core 10.0+
 - [Facet.Search](https://www.nuget.org/packages/Facet.Search/) package
+- For SQL Server FTS: Microsoft.EntityFrameworkCore.SqlServer
+- For PostgreSQL FTS: Npgsql.EntityFrameworkCore.PostgreSQL
 
 ## Related Packages
 
