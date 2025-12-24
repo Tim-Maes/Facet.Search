@@ -150,4 +150,79 @@ public class EFCoreAggregationTests
         Assert.Equal(29.99m, min);
         Assert.Equal(1299.99m, max); // Gaming laptop ($1999.99) is out of stock
     }
+
+    [Fact]
+    public async Task GetFacetAggregationsAsync_ReturnsAllAggregations()
+    {
+        // Arrange & Act
+        var results = await _fixture.Context.Products
+            .GetFacetAggregationsAsync<Models.Product, Models.Search.ProductFacetResults>();
+
+        // Assert - Brand facet
+        Assert.NotNull(results.Brand);
+        Assert.Equal(4, results.Brand.Count);
+        Assert.Equal(5, results.Brand["TechCorp"]);
+        Assert.Equal(2, results.Brand["ComfortPlus"]);
+        Assert.Equal(2, results.Brand["GameTech"]);
+        Assert.Equal(1, results.Brand["HomeLight"]);
+
+        // Assert - Category facet
+        Assert.NotNull(results.Category);
+        Assert.Equal(2, results.Category.Count);
+        Assert.Equal(7, results.Category["Electronics"]);
+        Assert.Equal(3, results.Category["Furniture"]);
+
+        // Assert - Price range
+        Assert.Equal(29.99m, results.PriceMin);
+        Assert.Equal(1999.99m, results.PriceMax);
+
+        // Assert - InStock boolean
+        Assert.Equal(7, results.InStockTrueCount);
+        Assert.Equal(3, results.InStockFalseCount);
+    }
+
+    [Fact]
+    public async Task GetFacetAggregationsAsync_OnFilteredQuery_ReturnsFilteredAggregations()
+    {
+        // Arrange
+        var electronicsQuery = _fixture.Context.Products.Where(p => p.Category == "Electronics");
+
+        // Act
+        var results = await electronicsQuery
+            .GetFacetAggregationsAsync<Models.Product, Models.Search.ProductFacetResults>();
+
+        // Assert - Only electronics brands
+        Assert.NotNull(results.Brand);
+        Assert.Equal(2, results.Brand.Count);
+        Assert.Equal(5, results.Brand["TechCorp"]);
+        Assert.Equal(2, results.Brand["GameTech"]);
+        Assert.False(results.Brand.ContainsKey("ComfortPlus"));
+        Assert.False(results.Brand.ContainsKey("HomeLight"));
+
+        // Assert - Category should only have Electronics
+        Assert.NotNull(results.Category);
+        Assert.Single(results.Category);
+        Assert.Equal(7, results.Category["Electronics"]);
+    }
+
+    [Fact]
+    public async Task GetFacetAggregationsAsync_OnEmptyQuery_ReturnsEmptyAggregations()
+    {
+        // Arrange
+        var emptyQuery = _fixture.Context.Products.Where(p => p.Brand == "NonExistent");
+
+        // Act
+        var results = await emptyQuery
+            .GetFacetAggregationsAsync<Models.Product, Models.Search.ProductFacetResults>();
+
+        // Assert
+        Assert.NotNull(results.Brand);
+        Assert.Empty(results.Brand);
+        Assert.NotNull(results.Category);
+        Assert.Empty(results.Category);
+        Assert.Null(results.PriceMin);
+        Assert.Null(results.PriceMax);
+        Assert.Equal(0, results.InStockTrueCount);
+        Assert.Equal(0, results.InStockFalseCount);
+    }
 }

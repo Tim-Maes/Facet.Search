@@ -14,13 +14,13 @@ Facet.Search uses source generators to automatically create search filter classe
 
 ## Features
 
-- **Zero Boilerplate** - Just add attributes to your models  
-- **Type-Safe** - All filters are compile-time checked  
-- **Performant** - Generated code is as efficient as hand-written  
-- **SQL Translated** - All filters execute on the database, not in memory  
-- **EF Core Integration** - [Extensions for EF Core](https://github.com/Tim-Maes/Facet.Search/tree/master/src/Facet.Search.EFCore) & multiple DB providers 
-- **Full-Text Search** - Built-in text search with multiple strategies  
-- **Facet Aggregations** - Automatic counting and range detection  
+- **Zero Boilerplate** - Just add attributes to your models
+- **Type-Safe** - All filters are compile-time checked
+- **Performant** - Generated code is as efficient as hand-written
+- **SQL Translated** - All filters execute on the database, not in memory
+- **EF Core Integration** - [Extensions for EF Core](https://github.com/Tim-Maes/Facet.Search/tree/master/src/Facet.Search.EFCore) & multiple DB providers
+- **Full-Text Search** - Built-in text search with multiple strategies
+- **Facet Aggregations** - Automatic counting and range detection (sync & async)
 - **Frontend Metadata** - Generate facet metadata for UI consumption  
 
 ## Installation
@@ -157,11 +157,15 @@ var pagedResult = await dbContext.Products
 
 // pagedResult.Items, pagedResult.TotalCount, pagedResult.TotalPages
 
-// Async facet aggregation
+// Get ALL facet aggregations asynchronously
+var aggregations = await dbContext.Products
+    .GetFacetAggregationsAsync<Product, ProductFacetResults>();
+// aggregations.Brand, aggregations.PriceMin/Max, aggregations.InStockTrueCount, etc.
+
+// Or individual facet aggregations
 var brandCounts = await dbContext.Products
     .AggregateFacetAsync(p => p.Brand, limit: 10);
 
-// Get min/max range
 var (minPrice, maxPrice) = await dbContext.Products
     .GetRangeAsync(p => p.Price);
 ```
