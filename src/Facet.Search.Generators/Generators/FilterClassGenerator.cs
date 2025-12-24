@@ -32,6 +32,22 @@ internal static class FilterClassGenerator
             sb.AppendLine();
         }
 
+        // Add sorting properties if there are sortable properties
+        if (model.SearchableProperties.Length > 0 || model.Facets.Length > 0)
+        {
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Property name to sort by. Must match a sortable property name.");
+            sb.AppendLine("    /// If the property name is invalid or not sortable, sorting will be ignored.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public string? SortBy { get; set; }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Sort direction. True for descending, false for ascending. Default is false (ascending).");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public bool SortDescending { get; set; }");
+            sb.AppendLine();
+        }
+
         sb.AppendLine("}");
         return sb.ToString();
     }
