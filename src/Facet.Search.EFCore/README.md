@@ -239,16 +239,40 @@ var aggregations = await dbContext.Products
 
 ## Pagination & Sorting
 
+### Built-in Sorting via Filter
+
+Sorting is built into the generated filter class:
+
 ```csharp
 using Facet.Search.EFCore;
 
+// Use filter properties for sorting
+var filter = new ProductSearchFilter
+{
+    Category = ["Electronics"],
+    SortBy = "Price",           // Property name to sort by
+    SortDescending = true       // Sort direction
+};
+
+var results = await dbContext.Products
+    .ApplyFacetedSearch(filter)
+    .ExecuteSearchAsync();
+
+// Results are filtered and sorted
+```
+
+### Manual Sorting with Extension Methods
+
+You can also use EF Core extension methods for more control:
+
+```csharp
 // Apply pagination (page 2, 25 items per page)
 var items = await dbContext.Products
     .ApplyFacetedSearch(filter)
     .Paginate(page: 2, pageSize: 25)
     .ExecuteSearchAsync();
 
-// Apply sorting
+// Apply sorting manually
 var sorted = await dbContext.Products
     .ApplyFacetedSearch(filter)
     .SortBy(p => p.Price, descending: true)
@@ -272,6 +296,8 @@ public class ProductsController : ControllerBase
         [FromQuery] decimal? maxPrice,
         [FromQuery] bool? inStock,
         [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
@@ -281,12 +307,13 @@ public class ProductsController : ControllerBase
             MinPrice = minPrice,
             MaxPrice = maxPrice,
             InStock = inStock,
-            SearchText = search
+            SearchText = search,
+            SortBy = sortBy,
+            SortDescending = sortDescending
         };
 
         var result = await _context.Products
-            .ApplyFacetedSearch(filter)
-            .SortBy(p => p.Name)
+            .ApplyFacetedSearch(filter)    // Applies filtering and sorting
             .ToPagedResultAsync(page, pageSize);
 
         return Ok(result);

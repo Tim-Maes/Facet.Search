@@ -60,6 +60,9 @@ internal static class ExtensionMethodsGenerator
             GenerateFullTextSearch(sb, model);
         }
 
+        // Generate sorting logic
+        GenerateSortingLogic(sb, model);
+
         sb.AppendLine("        return query;");
         sb.AppendLine("    }");
     }
@@ -292,5 +295,42 @@ internal static class ExtensionMethodsGenerator
                 break;
         }
         sb.AppendLine();
+    }
+
+    private static void GenerateSortingLogic(StringBuilder sb, SearchableModel model)
+    {
+        // Collect all sortable properties
+        var sortableProperties = model.SearchableProperties
+            .Where(p => p.Sortable)
+            .Select(p => p.Name)
+            .ToList();
+
+        // All facet properties are also sortable
+        foreach (var facet in model.Facets)
+        {
+            if (!sortableProperties.Contains(facet.PropertyName))
+                sortableProperties.Add(facet.PropertyName);
+        }
+
+        if (sortableProperties.Count == 0)
+            return;
+
+        sb.AppendLine();
+        sb.AppendLine("        // Apply sorting");
+        sb.AppendLine("        if (!string.IsNullOrWhiteSpace(filter.SortBy))");
+        sb.AppendLine("        {");
+        sb.AppendLine("            query = filter.SortBy switch");
+        sb.AppendLine("            {");
+
+        foreach (var propName in sortableProperties)
+        {
+            sb.AppendLine($"                \"{propName}\" => filter.SortDescending ");
+            sb.AppendLine($"                    ? query.OrderByDescending(x => x.{propName})");
+            sb.AppendLine($"                    : query.OrderBy(x => x.{propName}),");
+        }
+
+        sb.AppendLine("                _ => query // Ignore invalid sort properties");
+        sb.AppendLine("            };");
+        sb.AppendLine("        }");
     }
 }

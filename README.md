@@ -84,7 +84,9 @@ var filter = new ProductSearchFilter
     MinPrice = 100m,
     MaxPrice = 1000m,
     InStock = true,
-    SearchText = "laptop"
+    SearchText = "laptop",
+    SortBy = "Price",          // Sort by any facet or searchable property
+    SortDescending = false     // Ascending order
 };
 
 // Apply to any IQueryable<Product>
@@ -169,6 +171,34 @@ var brandCounts = await dbContext.Products
 var (minPrice, maxPrice) = await dbContext.Products
     .GetRangeAsync(p => p.Price);
 ```
+
+## Sorting
+
+All facet properties and properties marked with `[Searchable(Sortable = true)]` are automatically sortable:
+
+```csharp
+// Sort by any facet property (Brand, Category, Price, etc.)
+var filter = new ProductSearchFilter
+{
+    SortBy = "Price",
+    SortDescending = true  // false for ascending (default)
+};
+
+// Sort by searchable properties
+[Searchable(Sortable = true)]
+public int Rating { get; set; }
+
+var filter = new ProductSearchFilter
+{
+    SortBy = "Rating",
+    SortDescending = false
+};
+```
+
+**Validation:**
+- Invalid property names are ignored (lenient validation)
+- Sorting is applied **after** filtering
+- Only sortable properties can be used
 
 ## Facet Types
 

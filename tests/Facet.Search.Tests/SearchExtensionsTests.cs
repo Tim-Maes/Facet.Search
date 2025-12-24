@@ -338,4 +338,178 @@ public class SearchExtensionsTests
         // Assert
         Assert.Equal(8, results.Count);
     }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithSortByPrice_SortsAscending()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "Price",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        for (int i = 0; i < results.Count - 1; i++)
+        {
+            Assert.True(results[i].Price <= results[i + 1].Price,
+                $"Expected ascending order but {results[i].Price} > {results[i + 1].Price}");
+        }
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithSortByPriceDescending_SortsDescending()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "Price",
+            SortDescending = true
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        for (int i = 0; i < results.Count - 1; i++)
+        {
+            Assert.True(results[i].Price >= results[i + 1].Price,
+                $"Expected descending order but {results[i].Price} < {results[i + 1].Price}");
+        }
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithSortByBrand_SortsAlphabetically()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "Brand",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        for (int i = 0; i < results.Count - 1; i++)
+        {
+            Assert.True(string.Compare(results[i].Brand, results[i + 1].Brand, StringComparison.Ordinal) <= 0,
+                $"Expected alphabetical order but '{results[i].Brand}' > '{results[i + 1].Brand}'");
+        }
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithSortByRating_SortsCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "Rating",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        for (int i = 0; i < results.Count - 1; i++)
+        {
+            Assert.True(results[i].Rating <= results[i + 1].Rating);
+        }
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithInvalidSortProperty_IgnoresSorting()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var originalOrder = products.ToList();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "InvalidProperty",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert - Should return all items in original order (lenient validation)
+        Assert.Equal(8, results.Count);
+        Assert.Equal(originalOrder, results);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithNullSortBy_DoesNotSort()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var originalOrder = products.ToList();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = null,
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        Assert.Equal(originalOrder, results);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithEmptySortBy_DoesNotSort()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var originalOrder = products.ToList();
+        var filter = new TestProductSearchFilter
+        {
+            SortBy = "",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(8, results.Count);
+        Assert.Equal(originalOrder, results);
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithSortingAndFilters_AppliesBoth()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductList().AsQueryable();
+        var filter = new TestProductSearchFilter
+        {
+            Category = ["Electronics"],
+            SortBy = "Price",
+            SortDescending = false
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert - All should be Electronics and sorted by price
+        Assert.All(results, p => Assert.Equal("Electronics", p.Category));
+        for (int i = 0; i < results.Count - 1; i++)
+        {
+            Assert.True(results[i].Price <= results[i + 1].Price);
+        }
+    }
 }
