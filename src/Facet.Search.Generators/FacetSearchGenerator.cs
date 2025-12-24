@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Facet.Search.Generators.Models;
+using System.Linq;
 
 namespace Facet.Search.Generators;
 

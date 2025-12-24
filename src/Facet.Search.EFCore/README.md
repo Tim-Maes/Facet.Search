@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Facet.Search.EFCore.svg)](https://www.nuget.org/packages/Facet.Search.EFCore/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Entity Framework Core integration for Facet.Search** — Async extensions for executing faceted searches and aggregations with EF Core.
+**Entity Framework Core integration for Facet.Search** ï¿½ Async extensions for executing faceted searches and aggregations with EF Core.
 
 ## Installation
 
@@ -191,6 +191,52 @@ var (inStockCount, outOfStockCount) = await dbContext.Products
     .CountBooleanAsync(p => p.InStock);
 ```
 
+### All-in-One Async Aggregations
+
+Use `GetFacetAggregationsAsync` to execute **all facet aggregations at once** and populate the generated `*FacetResults` class:
+
+```csharp
+using Facet.Search.EFCore;
+using YourNamespace.Search;
+
+// Execute all aggregations asynchronously
+var aggregations = await dbContext.Products
+    .GetFacetAggregationsAsync<Product, ProductFacetResults>();
+
+// Access all facet data from a single call:
+// - Categorical facets
+Console.WriteLine($"Brands: {string.Join(", ", aggregations.Brand.Keys)}");
+// Output: Brands: Apple, Samsung, Google
+
+// - Range facets
+Console.WriteLine($"Price range: ${aggregations.PriceMin} - ${aggregations.PriceMax}");
+// Output: Price range: $99.99 - $2499.99
+
+// - Boolean facets
+Console.WriteLine($"In stock: {aggregations.InStockTrueCount}, Out of stock: {aggregations.InStockFalseCount}");
+// Output: In stock: 42, Out of stock: 8
+```
+
+This is the async equivalent of the generated `GetFacetAggregations()` method, providing the same results with async execution.
+
+**Benefits:**
+- âœ… Single method call for all facets
+- âœ… Type-safe with generated `*FacetResults` class
+- âœ… Works with filtered queries
+- âœ… Executes asynchronously
+
+**Example with filtering:**
+```csharp
+// Get aggregations for filtered results (e.g., only electronics)
+var filter = new ProductSearchFilter { Category = ["Electronics"] };
+
+var aggregations = await dbContext.Products
+    .ApplyFacetedSearch(filter)
+    .GetFacetAggregationsAsync<Product, ProductFacetResults>();
+
+// Now aggregations only reflect electronics products
+```
+
 ## Pagination & Sorting
 
 ```csharp
@@ -249,11 +295,31 @@ public class ProductsController : ControllerBase
     [HttpGet("facets")]
     public async Task<IActionResult> GetFacets()
     {
-        var brands = await _context.Products.AggregateFacetAsync(p => p.Brand, limit: 20);
-        var (minPrice, maxPrice) = await _context.Products.GetRangeAsync(p => p.Price);
-        var (inStock, outOfStock) = await _context.Products.CountBooleanAsync(p => p.InStock);
+        // Get all facet aggregations with a single call
+        var aggregations = await _context.Products
+            .GetFacetAggregationsAsync<Product, ProductFacetResults>();
 
-        return Ok(new { brands, priceRange = new { min = minPrice, max = maxPrice }, inStock, outOfStock });
+        return Ok(new
+        {
+            brands = aggregations.Brand,
+            categories = aggregations.Category,
+            priceRange = new { min = aggregations.PriceMin, max = aggregations.PriceMax },
+            inStock = aggregations.InStockTrueCount,
+            outOfStock = aggregations.InStockFalseCount
+        });
+    }
+
+    [HttpGet("facets/filtered")]
+    public async Task<IActionResult> GetFacetsForCategory([FromQuery] string category)
+    {
+        // Get aggregations for a specific category
+        var filter = new ProductSearchFilter { Category = [category] };
+
+        var aggregations = await _context.Products
+            .ApplyFacetedSearch(filter)
+            .GetFacetAggregationsAsync<Product, ProductFacetResults>();
+
+        return Ok(aggregations);
     }
 }
 ```
@@ -285,7 +351,8 @@ public class ProductsController : ControllerBase
 
 | Method | Description |
 |--------|-------------|
-| `AggregateFacetAsync<T, TKey>(selector, limit?)` | Groups and counts |
+| `GetFacetAggregationsAsync<TEntity, TResults>()` | **Executes all facet aggregations** and returns populated `*FacetResults` |
+| `AggregateFacetAsync<T, TKey>(selector, limit?)` | Groups and counts a single facet |
 | `GetMinAsync<T, TResult>(selector)` | Gets minimum value |
 | `GetMaxAsync<T, TResult>(selector)` | Gets maximum value |
 | `GetRangeAsync<T, TResult>(selector)` | Gets `(min, max)` tuple |
@@ -332,8 +399,8 @@ public class PagedResult<T>
 
 ## Related Packages
 
-- [Facet.Search](https://www.nuget.org/packages/Facet.Search/) — Core package with attributes and source generators
+- [Facet.Search](https://www.nuget.org/packages/Facet.Search/) ï¿½ Core package with attributes and source generators
 
 ## License
 
-MIT License — see [LICENSE](https://github.com/Tim-Maes/Facet.Search/blob/master/LICENSE.txt) for details.
+MIT License ï¿½ see [LICENSE](https://github.com/Tim-Maes/Facet.Search/blob/master/LICENSE.txt) for details.
