@@ -18,6 +18,7 @@ internal static class ExtensionMethodsGenerator
         sb.AppendLine();
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Linq;");
+        sb.AppendLine("using System.Linq.Expressions;");
         sb.AppendLine();
         sb.AppendLine($"namespace {model.Namespace}.Search;");
         sb.AppendLine();
@@ -28,6 +29,12 @@ internal static class ExtensionMethodsGenerator
         sb.AppendLine("{");
 
         GenerateApplySearchMethod(sb, model);
+        
+        // Generate helper method for full-text property selectors if there are full-text properties
+        if (!model.FullTextProperties.IsEmpty)
+        {
+            GenerateFullTextPropertySelectors(sb, model);
+        }
 
         sb.AppendLine("}");
         return sb.ToString();
@@ -41,6 +48,12 @@ internal static class ExtensionMethodsGenerator
         sb.AppendLine("    /// <remarks>");
         sb.AppendLine($"    /// Full-text search strategy: {model.FullTextStrategy}");
         sb.AppendLine("    /// All filters are translated to SQL and executed on the database server.");
+        if (model.FullTextStrategy != "LinqContains" && model.FullTextStrategy != "ClientSide")
+        {
+            sb.AppendLine("    /// ");
+            sb.AppendLine($"    /// To use native {model.FullTextStrategy} search, reference Facet.Search.EFCore and call:");
+            sb.AppendLine($"    /// query.ApplyFullTextSearch(filter.SearchText, {model.ClassName}SearchExtensions.GetFullTextPropertySelectors());");
+        }
         sb.AppendLine("    /// </remarks>");
         sb.AppendLine($"    public static System.Linq.IQueryable<{model.Namespace}.{model.ClassName}> ApplyFacetedSearch(");
         sb.AppendLine($"        this System.Linq.IQueryable<{model.Namespace}.{model.ClassName}> query,");
@@ -64,6 +77,36 @@ internal static class ExtensionMethodsGenerator
         GenerateSortingLogic(sb, model);
 
         sb.AppendLine("        return query;");
+        sb.AppendLine("    }");
+    }
+
+    private static void GenerateFullTextPropertySelectors(StringBuilder sb, SearchableModel model)
+    {
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// Gets the property selectors for full-text search fields.");
+        sb.AppendLine("    /// Use with Facet.Search.EFCore's full-text search extensions for native database search.");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine("    /// <example>");
+        sb.AppendLine("    /// <code>");
+        sb.AppendLine($"    /// // Using SQL Server FREETEXT:");
+        sb.AppendLine($"    /// query.ApplySqlServerFreeText(searchTerm, {model.ClassName}SearchExtensions.GetFullTextPropertySelectors());");
+        sb.AppendLine("    /// ");
+        sb.AppendLine($"    /// // Using PostgreSQL ILike:");
+        sb.AppendLine($"    /// query.ApplyPostgreSqlFullText(searchTerm, {model.ClassName}SearchExtensions.GetFullTextPropertySelectors());");
+        sb.AppendLine("    /// </code>");
+        sb.AppendLine("    /// </example>");
+        sb.AppendLine($"    public static Expression<Func<{model.Namespace}.{model.ClassName}, string?>>[] GetFullTextPropertySelectors()");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        return new Expression<Func<{model.Namespace}.{model.ClassName}, string?>>[]");
+        sb.AppendLine("        {");
+        
+        foreach (var p in model.FullTextProperties)
+        {
+            sb.AppendLine($"            x => x.{p.Name},");
+        }
+        
+        sb.AppendLine("        };");
         sb.AppendLine("    }");
     }
 
@@ -107,7 +150,6 @@ internal static class ExtensionMethodsGenerator
 
     private static void GenerateLinqContainsSearch(StringBuilder sb, SearchableModel model)
     {
-        // Standard LINQ Contains - translates to SQL LIKE '%term%'
         sb.AppendLine("            // Uses LINQ Contains() -> translates to SQL LIKE '%term%'");
         sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
         sb.Append("            query = query.Where(x => ");
@@ -125,17 +167,15 @@ internal static class ExtensionMethodsGenerator
 
     private static void GenerateEfLikeSearch(StringBuilder sb, SearchableModel model)
     {
-        // EF.Functions.Like - same as Contains but more explicit
-        sb.AppendLine("            // Uses EF.Functions.Like() for SQL LIKE pattern matching");
-        sb.AppendLine("            var pattern = $\"%{filter.SearchText}%\";");
-        sb.AppendLine("            // Note: Requires Microsoft.EntityFrameworkCore");
+        sb.AppendLine("            // Uses EF.Functions.Like() pattern matching");
+        sb.AppendLine("            // For native Like, use: query.ApplyLikeSearch(filter.SearchText, GetFullTextPropertySelectors())");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
         sb.Append("            query = query.Where(x => ");
 
         var first = true;
         foreach (var p in model.FullTextProperties)
         {
             if (!first) sb.Append(" || ");
-            // Fallback to Contains since we can't reference EF.Functions directly
             GeneratePropertyContainsExpression(sb, p);
             first = false;
         }
@@ -145,17 +185,11 @@ internal static class ExtensionMethodsGenerator
 
     private static void GenerateSqlServerFreeTextSearch(StringBuilder sb, SearchableModel model)
     {
-        // SQL Server FREETEXT - requires FULLTEXT index
         sb.AppendLine("            // SQL Server FREETEXT search - requires FULLTEXT index on the column(s)");
-        sb.AppendLine("            // Falls back to LIKE if EF.Functions.FreeText is not available");
-        sb.AppendLine("            var searchTerm = filter.SearchText;");
-        sb.AppendLine("            try");
-        sb.AppendLine("            {");
-        sb.AppendLine("                // Attempt to use SQL Server FreeText via reflection");
-        sb.AppendLine("                // This avoids a hard dependency on EF Core SQL Server");
-        sb.Append("                query = query.Where(x => ");
+        sb.AppendLine("            // For native FREETEXT, use: query.ApplySqlServerFreeText(filter.SearchText, GetFullTextPropertySelectors())");
+        sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
+        sb.Append("            query = query.Where(x => ");
 
-        // For now, fallback to Contains - users need to manually use EF.Functions.FreeText
         var first = true;
         foreach (var p in model.FullTextProperties)
         {
@@ -165,30 +199,12 @@ internal static class ExtensionMethodsGenerator
         }
 
         sb.AppendLine(");");
-        sb.AppendLine("            }");
-        sb.AppendLine("            catch");
-        sb.AppendLine("            {");
-        sb.AppendLine("                // Fallback to standard LIKE search");
-        sb.AppendLine("                var fallbackTerm = searchTerm.ToLower();");
-        sb.Append("                query = query.Where(x => ");
-
-        first = true;
-        foreach (var p in model.FullTextProperties)
-        {
-            if (!first) sb.Append(" || ");
-            GeneratePropertyContainsExpression(sb, p);
-            first = false;
-        }
-
-        sb.AppendLine(");");
-        sb.AppendLine("            }");
     }
 
     private static void GenerateSqlServerContainsSearch(StringBuilder sb, SearchableModel model)
     {
-        // SQL Server CONTAINS - requires FULLTEXT index
         sb.AppendLine("            // SQL Server CONTAINS search - requires FULLTEXT index");
-        sb.AppendLine("            // Note: For production, use EF.Functions.Contains() directly");
+        sb.AppendLine("            // For native CONTAINS, use: query.ApplySqlServerContains(filter.SearchText, GetFullTextPropertySelectors())");
         sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
         sb.Append("            query = query.Where(x => ");
 
@@ -205,9 +221,8 @@ internal static class ExtensionMethodsGenerator
 
     private static void GeneratePostgreSqlFullTextSearch(StringBuilder sb, SearchableModel model)
     {
-        // PostgreSQL full-text search - requires proper indexes
         sb.AppendLine("            // PostgreSQL full-text search");
-        sb.AppendLine("            // Note: For production, configure tsquery/tsvector in your DbContext");
+        sb.AppendLine("            // For native ILike, use: query.ApplyPostgreSqlFullText(filter.SearchText, GetFullTextPropertySelectors())");
         sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
         sb.Append("            query = query.Where(x => ");
 
@@ -224,11 +239,9 @@ internal static class ExtensionMethodsGenerator
 
     private static void GenerateClientSideSearch(StringBuilder sb, SearchableModel model)
     {
-        // Client-side evaluation - loads data into memory
         sb.AppendLine("            // CLIENT-SIDE EVALUATION - Data is loaded into memory first!");
         sb.AppendLine("            // Warning: This can be slow for large datasets.");
         sb.AppendLine("            var searchTerm = filter.SearchText.ToLower();");
-        sb.AppendLine("            // Force client evaluation with AsEnumerable(), then back to Queryable");
         sb.AppendLine("            var materializedQuery = query.AsEnumerable()");
         sb.Append("                .Where(x => ");
 

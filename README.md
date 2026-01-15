@@ -172,6 +172,40 @@ var (minPrice, maxPrice) = await dbContext.Products
     .GetRangeAsync(p => p.Price);
 ```
 
+### Native Full-Text Search
+
+For optimal performance with large datasets, use the native full-text search helpers:
+
+```csharp
+// Get the generated property selectors
+var selectors = ProductSearchExtensions.GetFullTextPropertySelectors();
+
+// SQL Server FREETEXT (requires FULLTEXT index)
+var results = await dbContext.Products
+    .ApplySqlServerFreeText("laptop", selectors)
+    .ToListAsync();
+
+// SQL Server CONTAINS (requires FULLTEXT index)
+var results = await dbContext.Products
+    .ApplySqlServerContains("laptop", selectors)
+    .ToListAsync();
+
+// PostgreSQL ILike (case-insensitive)
+var results = await dbContext.Products
+    .ApplyPostgreSqlFullText("laptop", selectors)
+    .ToListAsync();
+
+// EF.Functions.Like (works with all databases)
+var results = await dbContext.Products
+    .ApplyLikeSearch("laptop", selectors)
+    .ToListAsync();
+
+// Or specify strategy at runtime
+var results = await dbContext.Products
+    .ApplyFullTextSearch("laptop", FullTextSearchStrategy.SqlServerFreeText, selectors)
+    .ToListAsync();
+```
+
 ## Sorting
 
 All facet properties and properties marked with `[Searchable(Sortable = true)]` are automatically sortable:
