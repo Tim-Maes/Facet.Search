@@ -289,6 +289,80 @@ public class SearchExtensionsTests
     }
 
     [Fact]
+    public void ApplyFacetedSearch_WithIntCategoryId_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+        var filter = new TestProductWithNumericFacetsSearchFilter
+        {
+            CategoryId = [1]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(2, results.Count);
+        Assert.All(results, p => Assert.Equal(1, p.CategoryId));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithMultipleIntCategoryIds_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+        var filter = new TestProductWithNumericFacetsSearchFilter
+        {
+            CategoryId = [1, 2]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(4, results.Count);
+        Assert.All(results, p => Assert.True(p.CategoryId == 1 || p.CategoryId == 2));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithLongSupplierId_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+        var filter = new TestProductWithNumericFacetsSearchFilter
+        {
+            SupplierId = [100L]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Equal(2, results.Count);
+        Assert.All(results, p => Assert.Equal(100L, p.SupplierId));
+    }
+
+    [Fact]
+    public void ApplyFacetedSearch_WithCombinedIntAndLongFacets_FiltersCorrectly()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+        var filter = new TestProductWithNumericFacetsSearchFilter
+        {
+            CategoryId = [1],
+            SupplierId = [100L]
+        };
+
+        // Act
+        var results = products.ApplyFacetedSearch(filter).ToList();
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal(1, results[0].CategoryId);
+        Assert.Equal(100L, results[0].SupplierId);
+    }
+
+    [Fact]
     public void ApplyFacetedSearch_WithNoMatchingResults_ReturnsEmpty()
     {
         // Arrange
