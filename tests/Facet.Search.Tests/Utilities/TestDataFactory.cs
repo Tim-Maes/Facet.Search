@@ -100,6 +100,35 @@ public static class TestDataFactory
         ];
     }
 
+    public static Models.TestProductWithNumericFacets CreateProductWithNumericFacets(
+        int id = 0,
+        string name = "Test Product",
+        int categoryId = 1,
+        long supplierId = 100L,
+        decimal price = 99.99m)
+    {
+        return new Models.TestProductWithNumericFacets
+        {
+            Id = id == 0 ? Random.Shared.Next(1, 10000) : id,
+            Name = name,
+            CategoryId = categoryId,
+            SupplierId = supplierId,
+            Price = price
+        };
+    }
+
+    public static List<Models.TestProductWithNumericFacets> CreateProductWithNumericFacetsList()
+    {
+        return
+        [
+            CreateProductWithNumericFacets(1, "Product A", 1, 100L, 49.99m),
+            CreateProductWithNumericFacets(2, "Product B", 1, 200L, 99.99m),
+            CreateProductWithNumericFacets(3, "Product C", 2, 100L, 149.99m),
+            CreateProductWithNumericFacets(4, "Product D", 2, 200L, 299.99m),
+            CreateProductWithNumericFacets(5, "Product E", 3, 300L, 399.99m),
+        ];
+    }
+
     public static Models.TestItem CreateItem(
         int id = 0,
         decimal weight = 1.5m,

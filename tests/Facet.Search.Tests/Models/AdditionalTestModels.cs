@@ -39,6 +39,26 @@ public class TestCategory
 }
 
 /// <summary>
+/// Test model with int and long categorical facets
+/// </summary>
+[FacetedSearch]
+public class TestProductWithNumericFacets
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = null!;
+
+    [SearchFacet(Type = FacetType.Categorical, DisplayName = "Category ID")]
+    public int CategoryId { get; set; }
+
+    [SearchFacet(Type = FacetType.Categorical, DisplayName = "Supplier ID")]
+    public long SupplierId { get; set; }
+
+    [SearchFacet(Type = FacetType.Range, DisplayName = "Price")]
+    public decimal Price { get; set; }
+}
+
+/// <summary>
 /// Test model with range aggregation settings.
 /// </summary>
 [FacetedSearch]

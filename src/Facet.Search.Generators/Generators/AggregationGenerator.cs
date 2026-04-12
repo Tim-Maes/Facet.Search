@@ -54,6 +54,9 @@ internal static class AggregationGenerator
         return sb.ToString();
     }
 
+    private static bool IsStringPropertyType(string propertyType) =>
+        propertyType is "string" or "string?" or "System.String" or "System.String?";
+
     private static void GenerateAggregationMethod(StringBuilder sb, SearchableModel model)
     {
         sb.AppendLine("    /// <summary>");
@@ -89,7 +92,10 @@ internal static class AggregationGenerator
                     sb.AppendLine($"            .Take({facet.Limit})");
                 }
 
-                sb.AppendLine("            .ToDictionary(x => x.Value, x => x.Count);");
+                if (IsStringPropertyType(facet.PropertyType))
+                    sb.AppendLine("            .ToDictionary(x => x.Value, x => x.Count);");
+                else
+                    sb.AppendLine("            .ToDictionary(x => x.Value.ToString()!, x => x.Count);");
                 sb.AppendLine();
             }
             else if (facet.FacetType == "Range")

@@ -1,6 +1,7 @@
 using Facet.Search.Tests.Models;
 using Facet.Search.Tests.Models.Search;
 using Facet.Search.Tests.Utilities;
+using System.Linq;
 
 namespace Facet.Search.Tests;
 
@@ -132,5 +133,56 @@ public class AggregationGeneratorTests
         // Assert
         Assert.True(aggregations.Brand.ContainsKey("TechCorp"));
         Assert.False(aggregations.Brand.ContainsKey("techcorp"));
+    }
+
+    [Fact]
+    public void GetFacetAggregations_IntCategoryId_ReturnsStringKeyedCounts()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+
+        // Act
+        var aggregations = products.GetFacetAggregations();
+
+        // Assert - dictionary keys are string representations of the int values
+        Assert.Equal(3, aggregations.CategoryId.Count);
+        Assert.Equal(2, aggregations.CategoryId["1"]);
+        Assert.Equal(2, aggregations.CategoryId["2"]);
+        Assert.Equal(1, aggregations.CategoryId["3"]);
+    }
+
+    [Fact]
+    public void GetFacetAggregations_LongSupplierId_ReturnsStringKeyedCounts()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+
+        // Act
+        var aggregations = products.GetFacetAggregations();
+
+        // Assert - dictionary keys are string representations of the long values
+        Assert.Equal(3, aggregations.SupplierId.Count);
+        Assert.Equal(2, aggregations.SupplierId["100"]);
+        Assert.Equal(2, aggregations.SupplierId["200"]);
+        Assert.Equal(1, aggregations.SupplierId["300"]);
+    }
+
+    [Fact]
+    public void GetFacetAggregations_NumericFacets_OnFilteredQuery_ReturnsFilteredCounts()
+    {
+        // Arrange
+        var products = TestDataFactory.CreateProductWithNumericFacetsList().AsQueryable();
+        var filter = new TestProductWithNumericFacetsSearchFilter
+        {
+            CategoryId = [1, 2]
+        };
+
+        // Act
+        var filteredProducts = products.ApplyFacetedSearch(filter);
+        var aggregations = filteredProducts.GetFacetAggregations();
+
+        // Assert
+        Assert.Equal(2, aggregations.CategoryId.Count);
+        Assert.False(aggregations.CategoryId.ContainsKey("3"));
     }
 }

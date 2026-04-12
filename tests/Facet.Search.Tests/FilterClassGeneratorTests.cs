@@ -152,6 +152,32 @@ public class FilterClassGeneratorTests
     }
 
     [Fact]
+    public void FilterClass_NumericFacets_HasIntArrayForCategoryId()
+    {
+        // Arrange
+        var filter = new TestProductWithNumericFacetsSearchFilter();
+
+        // Act & Assert
+        Assert.Null(filter.CategoryId);
+        filter.CategoryId = [1, 2, 3];
+        Assert.Equal(3, filter.CategoryId.Length);
+        Assert.Equal(1, filter.CategoryId[0]);
+    }
+
+    [Fact]
+    public void FilterClass_NumericFacets_HasLongArrayForSupplierId()
+    {
+        // Arrange
+        var filter = new TestProductWithNumericFacetsSearchFilter();
+
+        // Act & Assert
+        Assert.Null(filter.SupplierId);
+        filter.SupplierId = [100L, 200L];
+        Assert.Equal(2, filter.SupplierId.Length);
+        Assert.Equal(100L, filter.SupplierId[0]);
+    }
+
+    [Fact]
     public void FilterClass_ItemFilter_HasRangeProperties()
     {
         // Arrange

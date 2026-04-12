@@ -83,7 +83,7 @@ internal static class FilterClassGenerator
                 break;
             case "Categorical":
             case "Hierarchical":
-                sb.AppendLine($"    public string[]? {facet.PropertyName} {{ get; set; }}");
+                sb.AppendLine($"    public {GetCategoricalElementType(facet.PropertyType)}[]? {facet.PropertyName} {{ get; set; }}");
                 break;
             case "Boolean":
                 sb.AppendLine($"    public bool? {facet.PropertyName} {{ get; set; }}");
@@ -94,4 +94,10 @@ internal static class FilterClassGenerator
         }
         sb.AppendLine();
     }
+
+    /// <summary>
+    /// Returns the base element type for a categorical filter array, stripping any nullable marker.
+    /// </summary>
+    private static string GetCategoricalElementType(string propertyType) =>
+        propertyType.TrimEnd('?');
 }
