@@ -45,7 +45,7 @@ internal static class MetadataGenerator
         sb.AppendLine("/// </summary>");
         sb.AppendLine($"public static class {model.ClassName}SearchMetadata");
         sb.AppendLine("{");
-        sb.AppendLine($"    public static IReadOnlyList<{metadataClassName}> Facets {{ get; }} = new[]");
+        sb.AppendLine($"    public static IReadOnlyList<{metadataClassName}> Facets {{ get; }} = new {metadataClassName}[]");
         sb.AppendLine("    {");
 
         foreach (var facet in model.Facets)
