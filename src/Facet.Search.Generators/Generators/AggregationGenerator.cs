@@ -74,7 +74,24 @@ internal static class AggregationGenerator
             {
                 bool isNullable = facet.PropertyType.EndsWith("?") || facet.PropertyType == "string";
                 sb.AppendLine($"        results.{facet.PropertyName} = query");
-                if (isNullable)
+
+                if (facet.IsCollection)
+                {
+                    // For collection properties, flatten with SelectMany first
+                    sb.AppendLine($"            .SelectMany(x => x.{facet.PropertyName})");
+                    // Element type nullability check
+                    var elemIsNullable = facet.ElementType != null && (facet.ElementType.EndsWith("?") || facet.ElementType == "string");
+                    if (elemIsNullable)
+                    {
+                        sb.AppendLine("            .Where(e => e != null)");
+                        sb.AppendLine("            .GroupBy(e => e!)");
+                    }
+                    else
+                    {
+                        sb.AppendLine("            .GroupBy(e => e)");
+                    }
+                }
+                else if (isNullable)
                 {
                     sb.AppendLine($"            .Where(x => x.{facet.PropertyName} != null)");
                     sb.AppendLine($"            .GroupBy(x => x.{facet.PropertyName}!)");
@@ -92,7 +109,7 @@ internal static class AggregationGenerator
                     sb.AppendLine($"            .Take({facet.Limit})");
                 }
 
-                if (IsStringPropertyType(facet.PropertyType))
+                if (facet.IsCollection ? IsStringPropertyType(facet.ElementType ?? "") : IsStringPropertyType(facet.PropertyType))
                     sb.AppendLine("            .ToDictionary(x => x.Value, x => x.Count);");
                 else
                     sb.AppendLine("            .ToDictionary(x => x.Value.ToString()!, x => x.Count);");

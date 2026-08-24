@@ -13,8 +13,8 @@ public class MetadataGeneratorTests
         // Act
         var facets = TestProductSearchMetadata.Facets;
 
-        // Assert - Brand, Category, Price, InStock, CreatedAt = 5 facets
-        Assert.Equal(5, facets.Count);
+        // Assert - Brand, Category, Price, InStock, CreatedAt, Tags, Sizes = 7 facets
+        Assert.Equal(7, facets.Count);
     }
 
     [Fact]
