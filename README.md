@@ -352,4 +352,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Related Projects
 
-- [Facet](https://github.com/Tim-Maes/Facet) — The Facet ecosystem
+- [Facet](https://github.com/Tim-Maes/Facet) : The Facet ecosystem
