@@ -16,7 +16,9 @@ internal sealed record SearchFacetInfo(
     string RangeAggregation,
     string? RangeIntervals,
     string? NavigationPath,
-    bool AutoInclude
+    bool AutoInclude,
+    bool IsCollection,
+    string? ElementType
 ) : IEquatable<SearchFacetInfo>
 {
     /// <summary>
@@ -62,6 +64,28 @@ internal sealed record SearchFacetInfo(
         string? navigationPath = null;
         var autoInclude = true;
 
+        // Detect collection types
+        var isCollection = false;
+        string? elementType = null;
+        var typeSymbol = property.Type;
+
+        // Check for array types (string[])
+        if (typeSymbol is IArrayTypeSymbol arrayType)
+        {
+            isCollection = true;
+            elementType = arrayType.ElementType.ToDisplayString();
+        }
+        // Check for generic collection types (List<T>, IEnumerable<T>, ICollection<T>, etc.)
+        else if (typeSymbol is INamedTypeSymbol namedType)
+        {
+            var elementTypeSymbol = GetCollectionElementType(namedType);
+            if (elementTypeSymbol != null)
+            {
+                isCollection = true;
+                elementType = elementTypeSymbol.ToDisplayString();
+            }
+        }
+
         foreach (var namedArg in attribute.NamedArguments)
         {
             switch (namedArg.Key)
@@ -102,7 +126,36 @@ internal sealed record SearchFacetInfo(
         return new SearchFacetInfo(
             propertyName, propertyType, facetType, displayName, orderBy,
             limit, dependsOn, isHierarchical, rangeAggregation, rangeIntervals,
-            navigationPath, autoInclude);
+            navigationPath, autoInclude, isCollection, elementType);
+    }
+
+    /// <summary>
+    /// Extracts the element type from a generic collection type (List&lt;T&gt;, IEnumerable&lt;T&gt;, ICollection&lt;T&gt;, etc.)
+    /// Returns null if the type is not a recognized collection.
+    /// </summary>
+    private static ITypeSymbol? GetCollectionElementType(INamedTypeSymbol type)
+    {
+        // Check if the type itself implements IEnumerable<T>
+        if (type.OriginalDefinition.SpecialType == SpecialType.System_String)
+            return null; // string implements IEnumerable<char>, but we don't want to treat it as a collection
+
+        foreach (var iface in type.AllInterfaces)
+        {
+            if (iface.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>"
+                && iface.TypeArguments.Length == 1)
+            {
+                return iface.TypeArguments[0];
+            }
+        }
+
+        // Also check if the type itself is IEnumerable<T>
+        if (type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>"
+            && type.TypeArguments.Length == 1)
+        {
+            return type.TypeArguments[0];
+        }
+
+        return null;
     }
 
     private static string? GetEnumName(TypedConstant constant)

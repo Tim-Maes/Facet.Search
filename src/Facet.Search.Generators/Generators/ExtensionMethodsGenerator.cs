@@ -288,7 +288,10 @@ internal static class ExtensionMethodsGenerator
             case "Categorical":
             case "Hierarchical":
                 sb.AppendLine($"        if (filter.{facet.PropertyName}?.Any() == true)");
-                sb.AppendLine($"            query = query.Where(x => filter.{facet.PropertyName}.Contains(x.{accessPath}));");
+                if (facet.IsCollection)
+                    sb.AppendLine($"            query = query.Where(x => x.{accessPath}.Any(e => filter.{facet.PropertyName}.Contains(e)));");
+                else
+                    sb.AppendLine($"            query = query.Where(x => filter.{facet.PropertyName}.Contains(x.{accessPath}));");
                 break;
             case "Range":
                 sb.AppendLine($"        if (filter.Min{facet.PropertyName}.HasValue)");
@@ -318,10 +321,10 @@ internal static class ExtensionMethodsGenerator
             .Select(p => p.Name)
             .ToList();
 
-        // All facet properties are also sortable
+        // All non-collection facet properties are also sortable
         foreach (var facet in model.Facets)
         {
-            if (!sortableProperties.Contains(facet.PropertyName))
+            if (!facet.IsCollection && !sortableProperties.Contains(facet.PropertyName))
                 sortableProperties.Add(facet.PropertyName);
         }
 

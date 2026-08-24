@@ -33,4 +33,10 @@ public class TestProduct
 
     [Searchable(Sortable = true)]
     public int Rating { get; set; }
+
+    [SearchFacet(Type = FacetType.Categorical, DisplayName = "Tags")]
+    public List<string> Tags { get; set; } = new();
+
+    [SearchFacet(Type = FacetType.Categorical, DisplayName = "Sizes")]
+    public string[] Sizes { get; set; } = Array.Empty<string>();
 }
